@@ -29,18 +29,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '找不到憑證' }, { status: 400 })
   }
 
-  const verification = await verifyAuthenticationResponse({
-    response: body,
-    expectedChallenge: challenge,
-    expectedOrigin: origin,
-    expectedRPID: rpID,
-    credential: {
-      id: credential.id,
-      publicKey: Buffer.from(credential.public_key, 'base64'),
-      counter: credential.counter,
-      transports: credential.transports || [],
-    },
-  })
+  let verification
+  try {
+    verification = await verifyAuthenticationResponse({
+      response: body,
+      expectedChallenge: challenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+      credential: {
+        id: credential.id,
+        publicKey: Buffer.from(credential.public_key, 'base64'),
+        counter: credential.counter,
+        transports: credential.transports || [],
+      },
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '驗證過程發生錯誤'
+    return NextResponse.json({ error: message }, { status: 400 })
+  }
 
   if (!verification.verified) {
     return NextResponse.json({ error: '驗證失敗' }, { status: 400 })
