@@ -59,7 +59,6 @@ export function DrugImageUpload({ currentUrl, onUrlChange }: DrugImageUploadProp
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <Label>藥品照片</Label>
       {currentUrl ? (
         <div className="relative">
           <img
