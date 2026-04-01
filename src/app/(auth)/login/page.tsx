@@ -38,12 +38,8 @@ export default function LoginPage() {
     toast.success('登入成功')
 
     // Show passkey registration prompt after successful login
-    if (window.PublicKeyCredential) {
+    if (window.PublicKeyCredential && !localStorage.getItem('passkey-prompt-dismissed')) {
       setShowPasskeyPrompt(true)
-      setTimeout(() => {
-        router.push('/')
-        router.refresh()
-      }, 500)
     } else {
       router.push('/')
       router.refresh()
@@ -104,7 +100,12 @@ export default function LoginPage() {
         </CardContent>
       </Card>
 
-      {showPasskeyPrompt && <PasskeyRegisterPrompt />}
+      {showPasskeyPrompt && (
+        <PasskeyRegisterPrompt onComplete={() => {
+          router.push('/')
+          router.refresh()
+        }} />
+      )}
     </div>
   )
 }

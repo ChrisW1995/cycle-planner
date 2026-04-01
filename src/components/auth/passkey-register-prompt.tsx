@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { startRegistration } from '@simplewebauthn/browser'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,22 +9,12 @@ import { toast } from 'sonner'
 
 const DISMISSED_KEY = 'passkey-prompt-dismissed'
 
-export function PasskeyRegisterPrompt() {
-  const [visible, setVisible] = useState(false)
-  const [loading, setLoading] = useState(false)
+interface PasskeyRegisterPromptProps {
+  onComplete: () => void
+}
 
-  useEffect(() => {
-    // Don't show if user previously dismissed or if WebAuthn is not supported
-    if (
-      localStorage.getItem(DISMISSED_KEY) ||
-      !window.PublicKeyCredential
-    ) {
-      return
-    }
-    // Show prompt after a short delay
-    const timer = setTimeout(() => setVisible(true), 1000)
-    return () => clearTimeout(timer)
-  }, [])
+export function PasskeyRegisterPrompt({ onComplete }: PasskeyRegisterPromptProps) {
+  const [loading, setLoading] = useState(false)
 
   const handleRegister = async () => {
     setLoading(true)
@@ -58,7 +48,7 @@ export function PasskeyRegisterPrompt() {
       toast.success('Passkey 已儲存', {
         description: '下次可直接使用 Face ID / Touch ID 登入',
       })
-      setVisible(false)
+      onComplete()
     } catch (error) {
       const message = error instanceof Error ? error.message : '註冊失敗'
       if (!message.includes('cancelled') && !message.includes('abort')) {
@@ -71,10 +61,8 @@ export function PasskeyRegisterPrompt() {
 
   const handleDismiss = () => {
     localStorage.setItem(DISMISSED_KEY, 'true')
-    setVisible(false)
+    onComplete()
   }
-
-  if (!visible) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
