@@ -6,12 +6,16 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+import { PasskeyLoginButton } from '@/components/auth/passkey-login-button'
+import { PasskeyRegisterPrompt } from '@/components/auth/passkey-register-prompt'
 import { toast } from 'sonner'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPasskeyPrompt, setShowPasskeyPrompt] = useState(false)
   const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -32,8 +36,18 @@ export default function LoginPage() {
     }
 
     toast.success('登入成功')
-    router.push('/')
-    router.refresh()
+
+    // Show passkey registration prompt after successful login
+    if (window.PublicKeyCredential) {
+      setShowPasskeyPrompt(true)
+      setTimeout(() => {
+        router.push('/')
+        router.refresh()
+      }, 500)
+    } else {
+      router.push('/')
+      router.refresh()
+    }
   }
 
   return (
@@ -43,7 +57,7 @@ export default function LoginPage() {
           <CardTitle className="text-2xl font-bold">Cycle Planner</CardTitle>
           <CardDescription>登入你的帳號</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username">帳號</Label>
@@ -72,11 +86,25 @@ export default function LoginPage() {
               {loading ? '登入中...' : '登入'}
             </Button>
           </form>
-          <p className="mt-4 text-center text-xs text-muted-foreground">
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <Separator className="w-full" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">或</span>
+            </div>
+          </div>
+
+          <PasskeyLoginButton />
+
+          <p className="text-center text-xs text-muted-foreground">
             帳號由管理員建立，如需帳號請聯繫管理員
           </p>
         </CardContent>
       </Card>
+
+      {showPasskeyPrompt && <PasskeyRegisterPrompt />}
     </div>
   )
 }
