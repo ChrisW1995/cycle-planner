@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Plus, LayoutGrid, List, Search } from 'lucide-react'
+import { Plus, LayoutGrid, List, Search, Pencil, Trash2, Pill } from 'lucide-react'
 import Link from 'next/link'
 import type { Drug } from '@/types'
 
@@ -154,6 +154,7 @@ function DrugTable({ drugs, isAdmin, onDelete }: { drugs: Drug[]; isAdmin: boole
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-12"></TableHead>
             <TableHead>名稱</TableHead>
             <TableHead>廠牌</TableHead>
             <TableHead>分類</TableHead>
@@ -166,6 +167,15 @@ function DrugTable({ drugs, isAdmin, onDelete }: { drugs: Drug[]; isAdmin: boole
         <TableBody>
           {drugs.map((drug) => (
             <TableRow key={drug.id}>
+              <TableCell>
+                {drug.image_url ? (
+                  <img src={drug.image_url} alt={drug.name} width={40} height={40} className="h-10 w-10 rounded object-cover" />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded bg-muted">
+                    <Pill className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                )}
+              </TableCell>
               <TableCell className="font-medium">{drug.name}</TableCell>
               <TableCell className="text-muted-foreground">{drug.brand || '—'}</TableCell>
               <TableCell>
@@ -184,11 +194,11 @@ function DrugTable({ drugs, isAdmin, onDelete }: { drugs: Drug[]; isAdmin: boole
               {isAdmin && (
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" render={<Link href={`/drugs/${drug.id}/edit`} />}>
-                      編輯
+                    <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="編輯" render={<Link href={`/drugs/${drug.id}/edit`} />}>
+                      <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-destructive" onClick={() => onDelete(drug.id)}>
-                      刪除
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" aria-label="刪除" onClick={() => onDelete(drug.id)}>
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </TableCell>

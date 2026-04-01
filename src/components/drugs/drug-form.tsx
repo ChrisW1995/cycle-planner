@@ -107,7 +107,7 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
         <form onSubmit={handleSubmit}>
           <div className="lg:grid lg:grid-cols-[280px_1fr] lg:gap-8">
             {/* Left column: image (desktop) */}
-            <div className="hidden lg:block">
+            <div className="hidden lg:flex lg:items-center lg:justify-center">
               <DrugImageUpload currentUrl={imageUrl} onUrlChange={setImageUrl} />
             </div>
 

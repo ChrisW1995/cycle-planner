@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { InventoryBadge } from './inventory-badge'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Pencil, Trash2, Pill } from 'lucide-react'
 import type { Drug } from '@/types'
 import Link from 'next/link'
 
@@ -23,7 +23,24 @@ const categoryColors: Record<string, string> = {
 
 export function DrugCard({ drug, isAdmin, onDelete }: DrugCardProps) {
   return (
-    <Card className="relative group">
+    <Card className="relative group overflow-hidden">
+      {/* Cover image */}
+      {drug.image_url ? (
+        <div className="relative h-40 w-full bg-white">
+          <img
+            src={drug.image_url}
+            alt={drug.name}
+            width={300}
+            height={160}
+            className="h-full w-full object-contain p-2"
+          />
+        </div>
+      ) : (
+        <div className="flex h-40 w-full items-center justify-center bg-muted/50">
+          <Pill className="h-10 w-10 text-muted-foreground/30" />
+        </div>
+      )}
+
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <CardTitle className="text-base font-semibold">{drug.name}</CardTitle>
@@ -64,16 +81,7 @@ export function DrugCard({ drug, isAdmin, onDelete }: DrugCardProps) {
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-2">
-        {drug.image_url && (
-          <img
-            src={drug.image_url}
-            alt={drug.name}
-            width={300}
-            height={96}
-            className="h-24 w-full rounded-md object-cover"
-          />
-        )}
+      <CardContent className="space-y-1.5">
         {drug.brand && (
           <p className="text-sm text-muted-foreground">
             廠牌: <span className="font-medium text-foreground">{drug.brand}</span>

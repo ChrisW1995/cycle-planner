@@ -58,16 +58,16 @@ export function DrugImageUpload({ currentUrl, onUrlChange }: DrugImageUploadProp
   }
 
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col items-center gap-3">
       <Label>藥品照片</Label>
       {currentUrl ? (
-        <div className="relative inline-block">
+        <div className="relative">
           <img
             src={currentUrl}
             alt="藥品照片"
-            width={128}
-            height={128}
-            className="h-32 w-32 rounded-lg border object-cover"
+            width={260}
+            height={260}
+            className="h-56 w-56 rounded-lg border object-contain bg-white lg:h-64 lg:w-64"
           />
           <Button
             type="button"
@@ -82,12 +82,12 @@ export function DrugImageUpload({ currentUrl, onUrlChange }: DrugImageUploadProp
         </div>
       ) : (
         <div
-          className="flex h-32 w-32 cursor-pointer items-center justify-center rounded-lg border border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 transition-colors"
+          className="flex h-56 w-56 cursor-pointer items-center justify-center rounded-lg border border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 transition-colors lg:h-64 lg:w-64"
           onClick={() => inputRef.current?.click()}
         >
           <div className="flex flex-col items-center gap-1 text-muted-foreground">
-            <ImagePlus className="h-6 w-6" />
-            <span className="text-xs">上傳照片</span>
+            <ImagePlus className="h-8 w-8" />
+            <span className="text-sm">上傳照片</span>
           </div>
         </div>
       )}

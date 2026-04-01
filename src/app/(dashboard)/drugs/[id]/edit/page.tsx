@@ -4,6 +4,9 @@ import { use } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDrug, useUpdateDrug } from '@/hooks/use-drugs'
 import { DrugForm } from '@/components/drugs/drug-form'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
 export default function EditDrugPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -12,7 +15,7 @@ export default function EditDrugPage({ params }: { params: Promise<{ id: string 
   const updateDrug = useUpdateDrug()
 
   if (isLoading) {
-    return <div className="flex items-center justify-center py-12 text-muted-foreground">載入中...</div>
+    return <div className="flex items-center justify-center py-12 text-muted-foreground">載入中…</div>
   }
 
   if (!drug) {
@@ -20,7 +23,11 @@ export default function EditDrugPage({ params }: { params: Promise<{ id: string 
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-2xl space-y-4">
+      <Button variant="ghost" size="sm" render={<Link href="/drugs" />}>
+        <ArrowLeft className="mr-1 h-4 w-4" />
+        返回藥物庫存
+      </Button>
       <DrugForm
         initialData={drug}
         onSubmit={(data) => {
