@@ -41,7 +41,7 @@ export function DrugCard({ drug, isAdmin, onDelete }: DrugCardProps) {
         </div>
       )}
 
-      <CardHeader className="pb-1 pt-3">
+      <CardHeader className="pb-1 pt-1">
         <div className="flex items-start justify-between">
           <CardTitle className="text-lg font-bold">{drug.name}</CardTitle>
           {isAdmin && (
@@ -81,7 +81,7 @@ export function DrugCard({ drug, isAdmin, onDelete }: DrugCardProps) {
           )}
         </div>
       </CardHeader>
-      <CardContent className="pt-1 space-y-1">
+      <CardContent className="space-y-1">
         {drug.brand && (
           <p className="text-sm text-muted-foreground">
             廠牌: <span className="font-medium text-foreground">{drug.brand}</span>
