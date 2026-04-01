@@ -104,8 +104,14 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
             <div className="space-y-2">
               <Label>選擇藥物模板</Label>
               <Select onValueChange={(v: string | null) => v && handleTemplateSelect(v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="選擇藥物..." />
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="選擇藥物...">
+                    {(value: string | null) => {
+                      if (!value) return '選擇藥物...'
+                      const t = templates?.find(tmpl => tmpl.id === value)
+                      return t ? `${t.short_name} — ${t.generic_name}${t.default_concentration ? ` (${t.default_concentration}${t.default_unit})` : ''}` : String(value)
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {groupedTemplates && Object.entries(groupedTemplates).map(([group, items]) => (
@@ -191,7 +197,7 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
             <div className="space-y-2">
               <Label>酯類（注射頻率）</Label>
               <Select value={esterType || 'none'} onValueChange={(v: string | null) => v && setEsterType(v === 'none' ? null : v as EsterType)}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
