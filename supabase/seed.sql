@@ -34,7 +34,7 @@ INSERT INTO drug_templates (generic_name, short_name, brand_names, primary_categ
 ('Methasterone', 'Superdrol', NULL, 'Oral', 'DHT', NULL, 10, 'mg/tab'),
 ('Fluoxymesterone', 'Halotestin', ARRAY['Halotestin', 'Halo'], 'Oral', 'Test', NULL, 10, 'mg/tab'),
 ('Mesterolone', 'Proviron', ARRAY['Proviron'], 'Oral', 'DHT', NULL, 25, 'mg/tab'),
-('Methyl-1-Testosterone', 'M1T', NULL, 'Oral', 'Other', NULL, 10, 'mg/tab');
+('Methyl-1-Testosterone', 'M1T', NULL, 'Oral', 'DHT', NULL, 10, 'mg/tab');
 
 -- ========== PCT - SERM ==========
 INSERT INTO drug_templates (generic_name, short_name, brand_names, primary_category, sub_category, ester_type, default_concentration, default_unit) VALUES
