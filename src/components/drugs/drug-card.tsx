@@ -65,6 +65,13 @@ export function DrugCard({ drug, isAdmin, onDelete }: DrugCardProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
+        {drug.image_url && (
+          <img
+            src={drug.image_url}
+            alt={drug.name}
+            className="h-24 w-full rounded-md object-cover"
+          />
+        )}
         {drug.brand && (
           <p className="text-sm text-muted-foreground">
             廠牌: <span className="font-medium text-foreground">{drug.brand}</span>

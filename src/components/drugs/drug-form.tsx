@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DrugImageUpload } from './drug-image-upload'
 import type { Drug, DrugTemplate, PrimaryCategory, SubCategory, EsterType } from '@/types'
 
 interface DrugFormProps {
@@ -39,6 +40,7 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
   const [primaryCategory, setPrimaryCategory] = useState<PrimaryCategory>(initialData?.primary_category || 'Injectable')
   const [subCategory, setSubCategory] = useState<SubCategory | null>(initialData?.sub_category || null)
   const [esterType, setEsterType] = useState<EsterType | null>(initialData?.ester_type || null)
+  const [imageUrl, setImageUrl] = useState<string | null>(initialData?.image_url || null)
   const [inventoryCount, setInventoryCount] = useState(initialData?.inventory_count?.toString() || '0')
   const [mode, setMode] = useState<'template' | 'custom'>(initialData ? 'custom' : 'template')
 
@@ -64,7 +66,7 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
       ester_type: esterType,
       brand: brand.trim() || null,
       inventory_count: parseInt(inventoryCount) || 0,
-      image_url: initialData?.image_url || null,
+      image_url: imageUrl,
     })
   }
 
@@ -235,6 +237,9 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
               </Select>
             </div>
           )}
+
+          {/* Drug Image */}
+          <DrugImageUpload currentUrl={imageUrl} onUrlChange={setImageUrl} />
 
           {/* Inventory */}
           <div className="space-y-2">
