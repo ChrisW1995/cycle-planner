@@ -161,7 +161,7 @@ function DrugTable({ drugs, isAdmin, onDelete }: { drugs: Drug[]; isAdmin: boole
             <TableHead>濃度</TableHead>
             <TableHead>酯類</TableHead>
             <TableHead>庫存</TableHead>
-            {isAdmin && <TableHead className="w-20">操作</TableHead>}
+            {isAdmin && <TableHead className="w-20 text-center">操作</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -193,7 +193,7 @@ function DrugTable({ drugs, isAdmin, onDelete }: { drugs: Drug[]; isAdmin: boole
               <TableCell><InventoryBadge count={drug.inventory_count} /></TableCell>
               {isAdmin && (
                 <TableCell>
-                  <div className="flex gap-1">
+                  <div className="flex justify-center gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="編輯" render={<Link href={`/drugs/${drug.id}/edit`} />}>
                       <Pencil className="h-4 w-4" />
                     </Button>

@@ -23,10 +23,10 @@ const categoryColors: Record<string, string> = {
 
 export function DrugCard({ drug, isAdmin, onDelete }: DrugCardProps) {
   return (
-    <Card className="relative group overflow-hidden">
-      {/* Cover image */}
+    <Card className="relative group overflow-hidden rounded-xl">
+      {/* Cover image — flush with top rounded corners */}
       {drug.image_url ? (
-        <div className="relative h-40 w-full bg-white">
+        <div className="h-40 w-full bg-white">
           <img
             src={drug.image_url}
             alt={drug.name}
@@ -41,9 +41,9 @@ export function DrugCard({ drug, isAdmin, onDelete }: DrugCardProps) {
         </div>
       )}
 
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-1 pt-3">
         <div className="flex items-start justify-between">
-          <CardTitle className="text-base font-semibold">{drug.name}</CardTitle>
+          <CardTitle className="text-lg font-bold">{drug.name}</CardTitle>
           {isAdmin && (
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -67,7 +67,7 @@ export function DrugCard({ drug, isAdmin, onDelete }: DrugCardProps) {
             </DropdownMenu>
           )}
         </div>
-        <div className="flex flex-wrap gap-1.5 mt-1">
+        <div className="flex flex-wrap gap-1.5 mt-0.5">
           <Badge variant="outline" className={categoryColors[drug.primary_category] || ''}>
             {drug.primary_category}
           </Badge>
@@ -81,7 +81,7 @@ export function DrugCard({ drug, isAdmin, onDelete }: DrugCardProps) {
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-1.5">
+      <CardContent className="pt-1 space-y-1">
         {drug.brand && (
           <p className="text-sm text-muted-foreground">
             廠牌: <span className="font-medium text-foreground">{drug.brand}</span>
@@ -90,7 +90,9 @@ export function DrugCard({ drug, isAdmin, onDelete }: DrugCardProps) {
         <p className="text-sm text-muted-foreground">
           濃度: <span className="font-medium text-foreground">{drug.concentration} mg/ml</span>
         </p>
-        <InventoryBadge count={drug.inventory_count} />
+        <div className="pt-1.5">
+          <InventoryBadge count={drug.inventory_count} />
+        </div>
       </CardContent>
     </Card>
   )
