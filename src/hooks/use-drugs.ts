@@ -23,6 +23,21 @@ export function useDrugTemplates() {
   })
 }
 
+export function useBrandSuggestions() {
+  return useQuery<string[]>({
+    queryKey: ['brand-suggestions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('drugs')
+        .select('brand')
+        .not('brand', 'is', null)
+        .order('brand')
+      if (error) throw error
+      return [...new Set(data?.map(d => d.brand).filter(Boolean))] as string[]
+    },
+  })
+}
+
 export function useDrugs() {
   return useQuery<Drug[]>({
     queryKey: ['drugs'],

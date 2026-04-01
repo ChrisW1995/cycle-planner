@@ -65,6 +65,11 @@ export function DrugCard({ drug, isAdmin, onDelete }: DrugCardProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
+        {drug.brand && (
+          <p className="text-sm text-muted-foreground">
+            廠牌: <span className="font-medium text-foreground">{drug.brand}</span>
+          </p>
+        )}
         <p className="text-sm text-muted-foreground">
           濃度: <span className="font-medium text-foreground">{drug.concentration} mg/ml</span>
         </p>

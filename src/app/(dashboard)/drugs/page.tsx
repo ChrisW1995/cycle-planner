@@ -25,7 +25,8 @@ export default function DrugsPage() {
   const filtered = drugs?.filter((d) =>
     d.name.toLowerCase().includes(search.toLowerCase()) ||
     d.primary_category.toLowerCase().includes(search.toLowerCase()) ||
-    d.sub_category?.toLowerCase().includes(search.toLowerCase())
+    d.sub_category?.toLowerCase().includes(search.toLowerCase()) ||
+    d.brand?.toLowerCase().includes(search.toLowerCase())
   )
 
   const lowStock = filtered?.filter((d) => d.inventory_count <= 1) || []
@@ -154,6 +155,7 @@ function DrugTable({ drugs, isAdmin, onDelete }: { drugs: Drug[]; isAdmin: boole
         <TableHeader>
           <TableRow>
             <TableHead>名稱</TableHead>
+            <TableHead>廠牌</TableHead>
             <TableHead>分類</TableHead>
             <TableHead>濃度</TableHead>
             <TableHead>酯類</TableHead>
@@ -165,6 +167,7 @@ function DrugTable({ drugs, isAdmin, onDelete }: { drugs: Drug[]; isAdmin: boole
           {drugs.map((drug) => (
             <TableRow key={drug.id}>
               <TableCell className="font-medium">{drug.name}</TableCell>
+              <TableCell className="text-muted-foreground">{drug.brand || '—'}</TableCell>
               <TableCell>
                 <div className="flex gap-1">
                   <Badge variant="outline" className={categoryColors[drug.primary_category] || ''}>

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useDrugTemplates } from '@/hooks/use-drugs'
+import { useState } from 'react'
+import { useDrugTemplates, useBrandSuggestions } from '@/hooks/use-drugs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -18,6 +18,7 @@ interface DrugFormProps {
     primary_category: PrimaryCategory
     sub_category: SubCategory | null
     ester_type: EsterType | null
+    brand: string | null
     inventory_count: number
     image_url: string | null
   }) => void
@@ -30,8 +31,10 @@ const esterTypes: EsterType[] = ['Long', 'Short']
 
 export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
   const { data: templates } = useDrugTemplates()
+  const { data: existingBrands } = useBrandSuggestions()
   const [selectedTemplate, setSelectedTemplate] = useState<DrugTemplate | null>(null)
   const [name, setName] = useState(initialData?.name || '')
+  const [brand, setBrand] = useState(initialData?.brand || '')
   const [concentration, setConcentration] = useState(initialData?.concentration?.toString() || '')
   const [primaryCategory, setPrimaryCategory] = useState<PrimaryCategory>(initialData?.primary_category || 'Injectable')
   const [subCategory, setSubCategory] = useState<SubCategory | null>(initialData?.sub_category || null)
@@ -59,6 +62,7 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
       primary_category: primaryCategory,
       sub_category: subCategory,
       ester_type: esterType,
+      brand: brand.trim() || null,
       inventory_count: parseInt(inventoryCount) || 0,
       image_url: initialData?.image_url || null,
     })
@@ -140,6 +144,29 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
               placeholder="e.g. TestE 300"
               required
             />
+          </div>
+
+          {/* Brand */}
+          <div className="space-y-2">
+            <Label htmlFor="brand">廠牌</Label>
+            <Input
+              id="brand"
+              value={brand}
+              onChange={(e) => setBrand(e.target.value)}
+              placeholder="e.g. Alpha Pharma"
+              list="brand-suggestions"
+            />
+            <datalist id="brand-suggestions">
+              {[...new Set([
+                ...(existingBrands || []),
+                ...(selectedTemplate?.brand_names || []),
+              ])].map(b => (
+                <option key={b} value={b} />
+              ))}
+            </datalist>
+            <p className="text-xs text-muted-foreground">
+              選填，建議從清單中選擇以保持名稱一致性
+            </p>
           </div>
 
           {/* Concentration */}
