@@ -32,7 +32,9 @@ INSERT INTO drug_templates (generic_name, short_name, brand_names, primary_categ
 ('Stanozolol', 'Winstrol', ARRAY['Winstrol', 'Winny'], 'Oral', 'DHT', NULL, 10, 'mg/tab'),
 ('Oxymetholone', 'Anadrol', ARRAY['Anadrol', 'A50'], 'Oral', 'DHT', NULL, 50, 'mg/tab'),
 ('Methasterone', 'Superdrol', NULL, 'Oral', 'DHT', NULL, 10, 'mg/tab'),
-('Fluoxymesterone', 'Halotestin', ARRAY['Halotestin', 'Halo'], 'Oral', 'Test', NULL, 10, 'mg/tab');
+('Fluoxymesterone', 'Halotestin', ARRAY['Halotestin', 'Halo'], 'Oral', 'Test', NULL, 10, 'mg/tab'),
+('Mesterolone', 'Proviron', ARRAY['Proviron'], 'Oral', 'DHT', NULL, 25, 'mg/tab'),
+('Methyl-1-Testosterone', 'M1T', NULL, 'Oral', 'Other', NULL, 10, 'mg/tab');
 
 -- ========== PCT - SERM ==========
 INSERT INTO drug_templates (generic_name, short_name, brand_names, primary_category, sub_category, ester_type, default_concentration, default_unit) VALUES
@@ -53,7 +55,10 @@ INSERT INTO drug_templates (generic_name, short_name, brand_names, primary_categ
 
 -- ========== PCT - Other ==========
 INSERT INTO drug_templates (generic_name, short_name, brand_names, primary_category, sub_category, ester_type, default_concentration, default_unit) VALUES
-('Human Chorionic Gonadotropin', 'HCG', NULL, 'PCT', 'Other', NULL, 5000, 'IU/vial'),
-('Clenbuterol', 'Clen', ARRAY['Spiropent'], 'PCT', 'Other', NULL, 40, 'mcg/tab'),
-('Liothyronine', 'T3', ARRAY['Cytomel'], 'PCT', 'Other', NULL, 25, 'mcg/tab'),
-('Levothyroxine', 'T4', ARRAY['Synthroid'], 'PCT', 'Other', NULL, 50, 'mcg/tab');
+('Human Chorionic Gonadotropin', 'HCG', NULL, 'PCT', 'Other', NULL, 5000, 'IU/vial');
+
+-- ========== Oral - Other (非合成代謝類口服藥) ==========
+INSERT INTO drug_templates (generic_name, short_name, brand_names, primary_category, sub_category, ester_type, default_concentration, default_unit) VALUES
+('Clenbuterol', 'Clen', ARRAY['Spiropent'], 'Oral', 'Other', NULL, 40, 'mcg/tab'),
+('Liothyronine', 'T3', ARRAY['Cytomel'], 'Oral', 'Other', NULL, 25, 'mcg/tab'),
+('Levothyroxine', 'T4', ARRAY['Synthroid'], 'Oral', 'Other', NULL, 50, 'mcg/tab');
