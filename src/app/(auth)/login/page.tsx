@@ -1,9 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,20 +9,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    })
 
-    if (error) {
-      toast.error('登入失敗', { description: error.message })
+    if (!res.ok) {
+      const data = await res.json()
+      toast.error('登入失敗', { description: data.error })
       setLoading(false)
       return
     }
@@ -44,14 +46,15 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="username">帳號</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                placeholder="輸入帳號"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
+                autoComplete="username"
               />
             </div>
             <div className="space-y-2">
@@ -69,11 +72,8 @@ export default function LoginPage() {
               {loading ? '登入中...' : '登入'}
             </Button>
           </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            還沒有帳號？{' '}
-            <Link href="/signup" className="text-primary underline">
-              註冊
-            </Link>
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            帳號由管理員建立，如需帳號請聯繫管理員
           </p>
         </CardContent>
       </Card>

@@ -4,8 +4,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Users,
@@ -14,6 +12,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Shield,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
@@ -26,17 +25,14 @@ const navigation = [
   { name: '課表管理', href: '/cycles', icon: Calendar },
 ]
 
+const adminNavigation = [
+  { name: '帳號管理', href: '/admin/users', icon: Shield },
+]
+
 export function Sidebar() {
   const pathname = usePathname()
-  const { profile, isAdmin } = useAuth()
-  const router = useRouter()
+  const { user, isAdmin, logout } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
-
-  const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
 
   return (
     <aside
@@ -85,6 +81,35 @@ export function Sidebar() {
             </Link>
           )
         })}
+
+        {/* Admin Nav */}
+        {isAdmin && (
+          <>
+            {!collapsed && (
+              <div className="px-3 pt-4 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                管理
+              </div>
+            )}
+            {adminNavigation.map((item) => {
+              const isActive = pathname.startsWith(item.href)
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  )}
+                >
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  {!collapsed && <span>{item.name}</span>}
+                </Link>
+              )
+            })}
+          </>
+        )}
       </nav>
 
       {/* User */}
@@ -93,10 +118,10 @@ export function Sidebar() {
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <p className="truncate text-sm font-medium">
-                {profile?.display_name || profile?.email}
+                {user?.display_name || user?.username}
               </p>
               <Badge variant={isAdmin ? 'default' : 'secondary'} className="text-xs mt-0.5">
-                {isAdmin ? 'Admin' : 'Viewer'}
+                {user?.role === 'developer' ? 'Dev' : isAdmin ? 'Admin' : 'Viewer'}
               </Badge>
             </div>
           )}
@@ -104,7 +129,7 @@ export function Sidebar() {
             variant="ghost"
             size="icon"
             className="h-8 w-8 shrink-0"
-            onClick={handleLogout}
+            onClick={logout}
           >
             <LogOut className="h-4 w-4" />
           </Button>

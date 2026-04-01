@@ -1,6 +1,7 @@
 // ==================== Auth & Profile ====================
-export type UserRole = 'admin' | 'viewer'
+export type UserRole = 'developer' | 'admin' | 'viewer'
 
+// Supabase Auth profile (developer only)
 export interface Profile {
   id: string
   email: string
@@ -8,6 +9,26 @@ export interface Profile {
   role: UserRole
   created_at: string
   updated_at: string
+}
+
+// Self-managed accounts (admin/viewer)
+export interface Account {
+  id: string
+  username: string
+  display_name: string
+  role: 'admin' | 'viewer'
+  created_at: string
+  updated_at: string
+}
+
+// JWT payload for admin/viewer sessions
+export interface SessionPayload {
+  sub: string       // account id
+  username: string
+  display_name: string
+  role: 'admin' | 'viewer'
+  iat: number
+  exp: number
 }
 
 // ==================== People ====================
