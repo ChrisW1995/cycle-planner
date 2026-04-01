@@ -1,24 +1,25 @@
-import { createClient } from './client'
-
-const BUCKET = 'drug-images'
-
 export async function uploadDrugImage(file: File): Promise<string> {
-  const supabase = createClient()
-  const ext = file.name.split('.').pop()
-  const path = `drugs/${crypto.randomUUID()}.${ext}`
+  const formData = new FormData()
+  formData.append('file', file)
 
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, file, { upsert: true })
-  if (error) throw error
+  const res = await fetch('/api/drugs/upload-image', {
+    method: 'POST',
+    body: formData,
+  })
 
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path)
-  return data.publicUrl
+  if (!res.ok) {
+    const data = await res.json()
+    throw new Error(data.error || '上傳失敗')
+  }
+
+  const { url } = await res.json()
+  return url
 }
 
 export async function deleteDrugImage(url: string): Promise<void> {
-  const supabase = createClient()
-  const path = url.split(`/${BUCKET}/`)[1]
-  if (!path) return
-  await supabase.storage.from(BUCKET).remove([path])
+  await fetch('/api/drugs/upload-image', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  })
 }
