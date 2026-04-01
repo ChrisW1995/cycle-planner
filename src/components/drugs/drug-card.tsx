@@ -69,6 +69,8 @@ export function DrugCard({ drug, isAdmin, onDelete }: DrugCardProps) {
           <img
             src={drug.image_url}
             alt={drug.name}
+            width={300}
+            height={96}
             className="h-24 w-full rounded-md object-cover"
           />
         )}

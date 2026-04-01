@@ -64,17 +64,20 @@ export function DrugImageUpload({ currentUrl, onUrlChange }: DrugImageUploadProp
         <div className="relative inline-block">
           <img
             src={currentUrl}
-            alt="Drug"
+            alt="藥品照片"
+            width={128}
+            height={128}
             className="h-32 w-32 rounded-lg border object-cover"
           />
           <Button
             type="button"
             variant="destructive"
             size="icon"
-            className="absolute -right-2 -top-2 h-6 w-6"
+            aria-label="移除圖片"
+            className="absolute -right-2 -top-2 h-8 w-8 shadow-md backdrop-blur-sm"
             onClick={handleRemove}
           >
-            <Trash2 className="h-3 w-3" />
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       ) : (
@@ -104,7 +107,7 @@ export function DrugImageUpload({ currentUrl, onUrlChange }: DrugImageUploadProp
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
         >
-          {uploading ? '上傳中...' : '選擇圖片'}
+          {uploading ? '上傳中…' : '選擇圖片'}
         </Button>
       )}
     </div>
