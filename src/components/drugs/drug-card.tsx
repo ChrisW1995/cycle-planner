@@ -32,7 +32,7 @@ export function DrugCard({ drug, isAdmin, onDelete }: DrugCardProps) {
             alt={drug.name}
             width={300}
             height={160}
-            className="h-full w-full object-contain p-2"
+            className="h-full w-full object-contain"
           />
         </div>
       ) : (
