@@ -2,6 +2,7 @@
 
 import { use, useState, useMemo, useCallback } from 'react'
 import { useCycle, useCycleCells, useAddCycleDrug, useRemoveCycleDrug, useSaveCycleCells, useUpdateCycle, useUpdateCycleStatus } from '@/hooks/use-cycles'
+import { useDrugs } from '@/hooks/use-drugs'
 import { useAuth } from '@/hooks/use-auth'
 import { ScheduleGrid } from '@/components/cycles/schedule-grid'
 import { DrugSelector } from '@/components/cycles/drug-selector'
@@ -36,6 +37,7 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
   const saveCells = useSaveCycleCells()
   const updateCycle = useUpdateCycle()
   const updateStatus = useUpdateCycleStatus()
+  const { data: allDrugs } = useDrugs()
   const { isAdmin } = useAuth()
 
   const [drugSelectorOpen, setDrugSelectorOpen] = useState(false)
@@ -70,8 +72,8 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
   // Inventory deltas
   const inventoryDeltas = useMemo(() => {
     if (!cycle?.cycle_drugs) return []
-    return calculateInventoryDeltas(cycle.cycle_drugs as any)
-  }, [cycle])
+    return calculateInventoryDeltas(cycle.cycle_drugs as any, allDrugs as any)
+  }, [cycle, allDrugs])
 
   const inventoryDeficitsMap = useMemo(() => {
     const map = new Map<string, number>()

@@ -6,6 +6,7 @@ interface DrugWithInventory {
   concentration: number
   primary_category: string
   ester_type: string | null
+  template_id?: string | null
   inventory_count: number
 }
 
@@ -45,10 +46,13 @@ export function calculateVialsNeeded(totalMl: number): number {
 }
 
 /**
- * Calculate inventory delta for all drugs in a cycle
+ * Calculate inventory delta for all drugs in a cycle.
+ * When allDrugs is provided, drugs with the same template_id + concentration
+ * share pooled inventory (different brands of the same drug).
  */
 export function calculateInventoryDeltas(
-  cycleDrugs: CycleDrugWithDrug[]
+  cycleDrugs: CycleDrugWithDrug[],
+  allDrugs?: DrugWithInventory[]
 ): DrugInventoryDelta[] {
   // Group by drug_id (same drug may appear in multiple cycle_drugs)
   const drugMap = new Map<string, { totalMl: number; drug: DrugWithInventory }>()
@@ -61,15 +65,30 @@ export function calculateInventoryDeltas(
     drugMap.set(cd.drug_id, existing)
   }
 
+  // Build inventory pool: template_id:concentration → total inventory
+  const poolMap = new Map<string, number>()
+  if (allDrugs) {
+    for (const d of allDrugs) {
+      if (!d.template_id) continue
+      const key = `${d.template_id}:${d.concentration}`
+      poolMap.set(key, (poolMap.get(key) || 0) + d.inventory_count)
+    }
+  }
+
   return Array.from(drugMap.entries()).map(([drugId, { totalMl, drug }]) => {
     const vialsNeeded = calculateVialsNeeded(totalMl)
+    // Use pooled inventory when available, otherwise individual
+    const poolKey = drug.template_id ? `${drug.template_id}:${drug.concentration}` : null
+    const inventory = (poolKey && poolMap.has(poolKey))
+      ? poolMap.get(poolKey)!
+      : drug.inventory_count
     return {
       drug_id: drugId,
       drug_name: drug.name,
       needed_ml: Math.round(totalMl * 100) / 100,
       needed_vials: vialsNeeded,
-      current_inventory: drug.inventory_count,
-      deficit: drug.inventory_count - vialsNeeded,
+      current_inventory: inventory,
+      deficit: inventory - vialsNeeded,
     }
   })
 }
