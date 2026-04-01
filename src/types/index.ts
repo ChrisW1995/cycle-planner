@@ -1,0 +1,139 @@
+// ==================== Auth & Profile ====================
+export type UserRole = 'admin' | 'viewer'
+
+export interface Profile {
+  id: string
+  email: string
+  display_name: string | null
+  role: UserRole
+  created_at: string
+  updated_at: string
+}
+
+// ==================== People ====================
+export interface Person {
+  id: string
+  nickname: string
+  height: number | null
+  weight: number | null
+  body_fat: number | null
+  age: number | null
+  needs_cycle: boolean
+  cycle_goal_notes: string | null
+  created_at: string
+  updated_at: string
+  // Joined fields
+  last_cycle_date?: string | null
+  cycles?: Cycle[]
+}
+
+export type PersonFormData = Omit<Person, 'id' | 'created_at' | 'updated_at' | 'last_cycle_date' | 'cycles'>
+
+// ==================== Drugs ====================
+export type PrimaryCategory = 'Injectable' | 'Oral' | 'PCT'
+export type SubCategory = 'Test' | 'Nor-19' | 'DHT' | 'AI' | 'SERM' | 'Prolactin' | 'Other'
+export type EsterType = 'Long' | 'Short'
+
+export interface DrugTemplate {
+  id: string
+  generic_name: string
+  short_name: string
+  brand_names: string[] | null
+  primary_category: PrimaryCategory
+  sub_category: SubCategory | null
+  ester_type: EsterType | null
+  default_concentration: number | null
+  default_unit: string
+  is_system: boolean
+}
+
+export interface Drug {
+  id: string
+  template_id: string | null
+  name: string
+  concentration: number
+  primary_category: PrimaryCategory
+  sub_category: SubCategory | null
+  ester_type: EsterType | null
+  image_url: string | null
+  inventory_count: number
+  created_at: string
+  updated_at: string
+  // Joined
+  template?: DrugTemplate
+}
+
+export type DrugFormData = Omit<Drug, 'id' | 'created_at' | 'updated_at' | 'template'>
+
+// ==================== Cycles ====================
+export type CycleStatus = 'Scheduled' | 'Planned' | 'Completed'
+
+export interface Cycle {
+  id: string
+  person_id: string
+  name: string | null
+  total_weeks: number
+  status: CycleStatus
+  start_date: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+  // Joined
+  person?: Person
+  cycle_drugs?: CycleDrug[]
+}
+
+export type CycleFormData = Omit<Cycle, 'id' | 'created_at' | 'updated_at' | 'person' | 'cycle_drugs'>
+
+// ==================== Cycle Drugs ====================
+export interface CycleDrug {
+  id: string
+  cycle_id: string
+  drug_id: string
+  weekly_dose: number | null
+  daily_dose: number | null
+  start_week: number
+  end_week: number
+  created_at: string
+  // Joined
+  drug?: Drug
+  cells?: CycleCell[]
+}
+
+export type CycleDrugFormData = Omit<CycleDrug, 'id' | 'created_at' | 'drug' | 'cells'>
+
+// ==================== Cycle Cells ====================
+export interface CycleCell {
+  id: string
+  cycle_id: string
+  cycle_drug_id: string
+  week_number: number
+  day_of_week: number // 1=Mon ... 7=Sun
+  display_value: string | null
+  ml_amount: number | null
+  is_manual_override: boolean
+  created_at: string
+}
+
+// ==================== Schedule Grid Types ====================
+export interface ScheduleGridCell {
+  entries: ScheduleCellEntry[]
+}
+
+export interface ScheduleCellEntry {
+  cycle_drug_id: string
+  drug_name: string
+  display_value: string
+  ml_amount: number | null
+  is_manual_override: boolean
+  has_error: boolean // ml mismatch with calculated
+}
+
+export interface DrugInventoryDelta {
+  drug_id: string
+  drug_name: string
+  needed_vials: number
+  needed_ml: number
+  current_inventory: number
+  deficit: number // negative = shortage
+}
