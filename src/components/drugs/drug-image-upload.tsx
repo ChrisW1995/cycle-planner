@@ -25,8 +25,8 @@ export function DrugImageUpload({ currentUrl, onUrlChange }: DrugImageUploadProp
       return
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('圖片大小不能超過 5MB')
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('圖片大小不能超過 10MB')
       return
     }
 
