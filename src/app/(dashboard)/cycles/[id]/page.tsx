@@ -1,7 +1,7 @@
 'use client'
 
 import { use, useState, useMemo, useCallback } from 'react'
-import { useCycle, useCycleCells, useAddCycleDrug, useRemoveCycleDrug, useSaveCycleCells, useUpdateCycle, useUpdateCycleStatus } from '@/hooks/use-cycles'
+import { useCycle, useCycleCells, useAddCycleDrug, useRemoveCycleDrug, useSaveCycleCells, useUpdateCycle, useUpdateCycleStatus, useDeleteCycle } from '@/hooks/use-cycles'
 import { useDrugs } from '@/hooks/use-drugs'
 import { useAuth } from '@/hooks/use-auth'
 import { ScheduleGrid } from '@/components/cycles/schedule-grid'
@@ -13,7 +13,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Minus, Save, ArrowLeft, Download, Trash2 } from 'lucide-react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Plus, Minus, Save, ArrowLeft, Download, Trash2, MoreHorizontal, Archive } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { CycleStatus, CycleCell } from '@/types'
 
@@ -21,11 +24,13 @@ const statusColors: Record<CycleStatus, string> = {
   Scheduled: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
   Planned: 'bg-amber-500/10 text-amber-500 border-amber-500/30',
   Completed: 'bg-green-500/10 text-green-500 border-green-500/30',
+  Archived: 'bg-zinc-500/10 text-zinc-500 border-zinc-500/30',
 }
 const statusLabels: Record<CycleStatus, string> = {
   Scheduled: '已預定',
   Planned: '已排制',
   Completed: '已完成',
+  Archived: '已封存',
 }
 
 export default function CycleBuilderPage({ params }: { params: Promise<{ id: string }> }) {
@@ -40,7 +45,10 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
   const { data: allDrugs } = useDrugs()
   const { isAdmin } = useAuth()
 
+  const router = useRouter()
+  const deleteCycle = useDeleteCycle()
   const [drugSelectorOpen, setDrugSelectorOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [localOverrides, setLocalOverrides] = useState<Map<string, { value: string; ml: number | null }>>(new Map())
 
   // Generate cells from cycle drugs
@@ -110,6 +118,21 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
     updateCycle.mutate({ id, total_weeks: newWeeks })
   }, [cycle, id, updateCycle])
 
+  const handleDelete = useCallback(() => {
+    deleteCycle.mutate(id, {
+      onSuccess: () => {
+        setDeleteDialogOpen(false)
+        router.push('/cycles')
+      },
+    })
+  }, [id, deleteCycle, router])
+
+  const handleArchive = useCallback(() => {
+    updateStatus.mutate({ id, status: 'Archived' })
+  }, [id, updateStatus])
+
+  const isEditable = isAdmin && cycle?.status !== 'Archived'
+
   if (isLoading) {
     return <div className="flex items-center justify-center py-12 text-muted-foreground">載入中...</div>
   }
@@ -142,7 +165,7 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
         </div>
 
         <div className="flex items-center gap-2">
-          {isAdmin && (
+          {isEditable && (
             <>
               <Select
                 value={cycle.status}
@@ -169,11 +192,35 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
               <Download className="mr-2 h-4 w-4" />
               匯出
           </Button>
+          {isAdmin && (cycle.status === 'Scheduled' || cycle.status === 'Completed') && (
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<Button variant="outline" size="icon" />}>
+                <MoreHorizontal className="h-4 w-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {cycle.status === 'Completed' && (
+                  <DropdownMenuItem onClick={handleArchive}>
+                    <Archive className="mr-2 h-4 w-4" />
+                    封存課表
+                  </DropdownMenuItem>
+                )}
+                {cycle.status === 'Scheduled' && (
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => setDeleteDialogOpen(true)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    刪除課表
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 
       {/* Controls */}
-      {isAdmin && (
+      {isEditable && (
         <div className="flex items-center gap-3">
           <Button onClick={() => setDrugSelectorOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -208,7 +255,7 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
                   <span className="text-muted-foreground">
                     W{cd.start_week}-{cd.end_week}
                   </span>
-                  {isAdmin && (
+                  {isEditable && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -253,6 +300,30 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
         onAdd={handleAddDrug}
         totalWeeks={cycle.total_weeks}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>確認刪除</DialogTitle>
+            <DialogDescription>
+              此操作會永久刪除課表「{cycle.name || '未命名'}」及所有排程資料，無法復原。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleteCycle.isPending}
+            >
+              {deleteCycle.isPending ? '刪除中...' : '確認刪除'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

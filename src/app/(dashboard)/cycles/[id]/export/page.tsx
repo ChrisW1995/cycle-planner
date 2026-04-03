@@ -1,13 +1,14 @@
 'use client'
 
 import { use, useMemo } from 'react'
-import { useCycle, useCycleCells } from '@/hooks/use-cycles'
+import { useCycle, useCycleCells, useUpdateCycleStatus } from '@/hooks/use-cycles'
 import { generateAllCells } from '@/lib/calculations/schedule-engine'
 import { exportScheduleToCSV, downloadCSV } from '@/lib/export/csv-export'
 import { exportScheduleToPDF } from '@/lib/export/pdf-export'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, FileSpreadsheet, FileText } from 'lucide-react'
+import { toast } from 'sonner'
 import Link from 'next/link'
 import type { CycleCell } from '@/types'
 
@@ -17,6 +18,7 @@ export default function ExportPage({ params }: { params: Promise<{ id: string }>
   const { id } = use(params)
   const { data: cycle, isLoading } = useCycle(id)
   const { data: savedCells } = useCycleCells(id)
+  const updateStatus = useUpdateCycleStatus()
 
   // Generate display cells
   const displayCells: CycleCell[] = useMemo(() => {
@@ -51,6 +53,18 @@ export default function ExportPage({ params }: { params: Promise<{ id: string }>
     return map
   }, [displayCells])
 
+  const promptArchive = () => {
+    if (!cycle || cycle.status === 'Archived') return
+    toast.success('匯出成功', {
+      description: '是否將此課表封存？',
+      action: {
+        label: '封存',
+        onClick: () => updateStatus.mutate({ id, status: 'Archived' }),
+      },
+      duration: 6000,
+    })
+  }
+
   const handleCSVExport = () => {
     if (!cycle) return
     const personName = (cycle as any).person?.nickname || 'Unknown'
@@ -60,6 +74,7 @@ export default function ExportPage({ params }: { params: Promise<{ id: string }>
       displayCells
     )
     downloadCSV(csv, `${personName}_${cycle.name || 'cycle'}.csv`)
+    promptArchive()
   }
 
   const handlePDFExport = () => {
@@ -71,6 +86,7 @@ export default function ExportPage({ params }: { params: Promise<{ id: string }>
       cycle.total_weeks,
       displayCells
     )
+    promptArchive()
   }
 
   if (isLoading) {
