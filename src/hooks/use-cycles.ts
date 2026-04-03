@@ -70,8 +70,8 @@ export function useCreateCycle() {
       return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cycles'] })
-      queryClient.invalidateQueries({ queryKey: ['people'] })
+      queryClient.invalidateQueries({ queryKey: ['cycles'], refetchType: 'all' })
+      queryClient.invalidateQueries({ queryKey: ['people'], refetchType: 'all' })
       toast.success('課表已建立')
     },
     onError: (error) => toast.error('建立失敗', { description: error.message }),
@@ -86,13 +86,31 @@ export function useUpdateCycle() {
       if (error) throw error
       return data
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['cycles'] })
-      queryClient.invalidateQueries({ queryKey: ['cycles', data.id] })
-      queryClient.invalidateQueries({ queryKey: ['people'] })
+    onMutate: async (newData) => {
+      await queryClient.cancelQueries({ queryKey: ['cycles', newData.id] })
+      const previousCycle = queryClient.getQueryData(['cycles', newData.id])
+
+      queryClient.setQueryData(['cycles', newData.id], (old: any) => {
+        if (!old) return old
+        return { ...old, ...newData }
+      })
+
+      return { previousCycle }
+    },
+    onError: (error, newData, context) => {
+      if (context?.previousCycle) {
+        queryClient.setQueryData(['cycles', newData.id], context.previousCycle)
+      }
+      toast.error('更新失敗', { description: error.message })
+    },
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['cycles'], refetchType: 'all' })
+      queryClient.invalidateQueries({ queryKey: ['cycles', variables.id], refetchType: 'all' })
+      queryClient.invalidateQueries({ queryKey: ['people'], refetchType: 'all' })
+    },
+    onSuccess: () => {
       toast.success('課表已更新')
     },
-    onError: (error) => toast.error('更新失敗', { description: error.message }),
   })
 }
 
@@ -105,8 +123,8 @@ export function useUpdateCycleStatus() {
       return data
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['cycles'] })
-      queryClient.invalidateQueries({ queryKey: ['cycles', data.id] })
+      queryClient.invalidateQueries({ queryKey: ['cycles'], refetchType: 'all' })
+      queryClient.invalidateQueries({ queryKey: ['cycles', data.id], refetchType: 'all' })
       toast.success('狀態已更新')
     },
     onError: (error) => toast.error('更新失敗', { description: error.message }),
@@ -176,8 +194,8 @@ export function useDeleteCycle() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cycles'] })
-      queryClient.invalidateQueries({ queryKey: ['people'] })
+      queryClient.invalidateQueries({ queryKey: ['cycles'], refetchType: 'all' })
+      queryClient.invalidateQueries({ queryKey: ['people'], refetchType: 'all' })
       toast.success('課表已刪除')
     },
     onError: (error) => toast.error('刪除失敗', { description: error.message }),

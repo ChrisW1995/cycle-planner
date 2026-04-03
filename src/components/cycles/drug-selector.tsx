@@ -84,7 +84,14 @@ export function DrugSelector({ open, onClose, onAdd, totalWeeks, existingDrugIds
             <Label>選擇藥物 *</Label>
             <Select value={selectedDrugId} onValueChange={(v: string | null) => v && setSelectedDrugId(v)}>
               <SelectTrigger>
-                <SelectValue placeholder="選擇庫存中的藥物..." />
+                <SelectValue placeholder="選擇庫存中的藥物...">
+                  {(value: string | null) => {
+                    if (!value) return null
+                    const d = drugs?.find(drug => drug.id === value)
+                    if (!d) return value
+                    return `${d.name} (${d.primary_category}${d.ester_type ? ` - ${d.ester_type === 'Long' ? '長效' : '短效'}` : ''})`
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {drugs?.map((d) => (

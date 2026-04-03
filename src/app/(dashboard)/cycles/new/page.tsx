@@ -53,7 +53,12 @@ function NewCycleForm() {
               <Label>人員 *</Label>
               <Select value={personId} onValueChange={(v: string | null) => v && setPersonId(v)} required>
                 <SelectTrigger>
-                  <SelectValue placeholder="選擇人員..." />
+                  <SelectValue placeholder="選擇人員...">
+                    {(value: string | null) => {
+                      if (!value) return null
+                      return people?.find(p => p.id === value)?.nickname ?? value
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {people?.map((p) => (

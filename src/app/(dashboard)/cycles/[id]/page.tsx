@@ -149,7 +149,9 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
                 onValueChange={(v: string | null) => v && updateStatus.mutate({ id, status: v as CycleStatus })}
               >
                 <SelectTrigger className="w-32">
-                  <SelectValue />
+                  <SelectValue>
+                    {(value: string | null) => value ? statusLabels[value as CycleStatus] ?? value : null}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Scheduled">已預定</SelectItem>
