@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cycle-planner-v2'
+const CACHE_NAME = 'cycle-planner-v3'
 
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting())
@@ -21,6 +21,9 @@ self.addEventListener('fetch', (event) => {
 
   // Skip non-GET requests
   if (request.method !== 'GET') return
+
+  // Skip external API requests (Supabase etc.) — never cache data queries
+  if (!request.url.startsWith(self.location.origin)) return
 
   // Network-first for API routes and navigation
   if (request.url.includes('/api/') || request.mode === 'navigate') {
