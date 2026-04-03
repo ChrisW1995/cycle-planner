@@ -3,7 +3,7 @@ import type { MetadataRoute } from 'next'
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Cycle Planner',
-    short_name: 'CyclePlan',
+    short_name: 'CyclePlanner',
     description: '藥物課表規劃工具',
     start_url: '/',
     display: 'standalone',
