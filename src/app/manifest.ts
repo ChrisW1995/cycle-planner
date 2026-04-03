@@ -20,6 +20,11 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: '512x512',
         type: 'image/png',
       },
+      {
+        src: '/icons/cycle-planner-iOS-Dark-1024x1024@1x.png',
+        sizes: '1024x1024',
+        type: 'image/png',
+      },
     ],
   }
 }
