@@ -3,11 +3,13 @@ import { cn } from '@/lib/utils'
 
 interface InventoryBadgeProps {
   count: number
+  unit?: string
   className?: string
 }
 
-export function InventoryBadge({ count, className }: InventoryBadgeProps) {
+export function InventoryBadge({ count, unit, className }: InventoryBadgeProps) {
   const status = count === 0 ? 'empty' : count <= 1 ? 'low' : 'ok'
+  const suffix = unit || ''
 
   return (
     <Badge
@@ -20,7 +22,7 @@ export function InventoryBadge({ count, className }: InventoryBadgeProps) {
         className
       )}
     >
-      {status === 'empty' ? '無庫存' : status === 'low' ? `庫存不足 (${count})` : `庫存 ${count}`}
+      {status === 'empty' ? '無庫存' : status === 'low' ? `庫存不足 (${count}${suffix})` : `庫存 ${count}${suffix}`}
     </Badge>
   )
 }

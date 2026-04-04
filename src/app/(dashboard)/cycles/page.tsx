@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Plus } from 'lucide-react'
+import { Plus, Eye, Pencil, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import type { CycleStatus } from '@/types'
 
@@ -58,7 +58,7 @@ export default function CyclesPage() {
                 <TableHead>週數</TableHead>
                 <TableHead>開始日期</TableHead>
                 <TableHead>狀態</TableHead>
-                <TableHead className="w-24">操作</TableHead>
+                <TableHead className="w-28 text-center">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -76,18 +76,18 @@ export default function CyclesPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" render={<Link href={`/cycles/${cycle.id}`} />}>
-                        編輯
+                    <div className="flex justify-center gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="檢視" render={<Link href={`/cycles/${cycle.id}`} />}>
+                        <Eye className="h-4 w-4" />
                       </Button>
+                      {isAdmin && (
+                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="編輯" render={<Link href={`/cycles/${cycle.id}`} />}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
                       {isAdmin && cycle.status === 'Scheduled' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive"
-                          onClick={() => setDeleteTarget(cycle.id)}
-                        >
-                          刪除
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" aria-label="刪除" onClick={() => setDeleteTarget(cycle.id)}>
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
                     </div>

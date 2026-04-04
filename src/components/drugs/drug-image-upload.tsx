@@ -98,17 +98,6 @@ export function DrugImageUpload({ currentUrl, onUrlChange }: DrugImageUploadProp
         className="hidden"
         disabled={uploading}
       />
-      {!currentUrl && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-        >
-          {uploading ? '上傳中…' : '選擇圖片'}
-        </Button>
-      )}
     </div>
   )
 }

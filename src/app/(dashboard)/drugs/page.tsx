@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useDrugs, useDeleteDrug } from '@/hooks/use-drugs'
+import { useDrugs, useDeleteDrug, useUpdateDrug } from '@/hooks/use-drugs'
 import { useAuth } from '@/hooks/use-auth'
 import { DrugCard } from '@/components/drugs/drug-card'
 import { InventoryBadge } from '@/components/drugs/inventory-badge'
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Plus, LayoutGrid, List, Search, Pencil, Trash2, Pill } from 'lucide-react'
 import Link from 'next/link'
@@ -17,10 +18,36 @@ import type { Drug } from '@/types'
 export default function DrugsPage() {
   const { data: drugs, isLoading } = useDrugs()
   const deleteDrug = useDeleteDrug()
+  const updateDrug = useUpdateDrug()
   const { isAdmin } = useAuth()
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('drugs-view-mode') as 'grid' | 'list') || 'grid'
+    }
+    return 'grid'
+  })
   const [search, setSearch] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [inventoryTarget, setInventoryTarget] = useState<Drug | null>(null)
+  const [editCount, setEditCount] = useState('')
+
+  const handleViewModeChange = (mode: 'grid' | 'list') => {
+    setViewMode(mode)
+    localStorage.setItem('drugs-view-mode', mode)
+  }
+
+  const handleInventoryUpdate = () => {
+    if (!inventoryTarget) return
+    updateDrug.mutate(
+      { id: inventoryTarget.id, inventory_count: parseInt(editCount) || 0 },
+      { onSuccess: () => setInventoryTarget(null) }
+    )
+  }
+
+  const openInventoryEdit = (drug: Drug) => {
+    setInventoryTarget(drug)
+    setEditCount(drug.inventory_count.toString())
+  }
 
   const filtered = drugs?.filter((d) =>
     d.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -54,7 +81,7 @@ export default function DrugsPage() {
               variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
               size="icon"
               className="h-9 w-9 rounded-r-none"
-              onClick={() => setViewMode('grid')}
+              onClick={() => handleViewModeChange('grid')}
             >
               <LayoutGrid className="h-4 w-4" />
             </Button>
@@ -62,7 +89,7 @@ export default function DrugsPage() {
               variant={viewMode === 'list' ? 'secondary' : 'ghost'}
               size="icon"
               className="h-9 w-9 rounded-l-none"
-              onClick={() => setViewMode('list')}
+              onClick={() => handleViewModeChange('list')}
             >
               <List className="h-4 w-4" />
             </Button>
@@ -96,11 +123,11 @@ export default function DrugsPage() {
           {viewMode === 'grid' ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {lowStock.map((drug) => (
-                <DrugCard key={drug.id} drug={drug} isAdmin={isAdmin} onDelete={setDeleteTarget} />
+                <DrugCard key={drug.id} drug={drug} isAdmin={isAdmin} onDelete={setDeleteTarget} onInventoryEdit={openInventoryEdit} />
               ))}
             </div>
           ) : (
-            <DrugTable drugs={lowStock} isAdmin={isAdmin} onDelete={setDeleteTarget} />
+            <DrugTable drugs={lowStock} isAdmin={isAdmin} onDelete={setDeleteTarget} onInventoryEdit={openInventoryEdit} />
           )}
         </section>
       )}
@@ -117,11 +144,11 @@ export default function DrugsPage() {
         ) : viewMode === 'grid' ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {normalStock.map((drug) => (
-              <DrugCard key={drug.id} drug={drug} isAdmin={isAdmin} onDelete={setDeleteTarget} />
+              <DrugCard key={drug.id} drug={drug} isAdmin={isAdmin} onDelete={setDeleteTarget} onInventoryEdit={openInventoryEdit} />
             ))}
           </div>
         ) : (
-          <DrugTable drugs={normalStock} isAdmin={isAdmin} onDelete={setDeleteTarget} />
+          <DrugTable drugs={normalStock} isAdmin={isAdmin} onDelete={setDeleteTarget} onInventoryEdit={openInventoryEdit} />
         )}
       </section>
 
@@ -138,11 +165,38 @@ export default function DrugsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Inventory Quick Edit Dialog */}
+      <Dialog open={!!inventoryTarget} onOpenChange={() => setInventoryTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>更新庫存 — {inventoryTarget?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="edit-inventory">
+              {inventoryTarget?.primary_category === 'Injectable' ? '庫存瓶數' : '庫存顆數'}
+            </Label>
+            <Input
+              id="edit-inventory"
+              type="number"
+              min="0"
+              value={editCount}
+              onChange={(e) => setEditCount(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInventoryTarget(null)}>取消</Button>
+            <Button onClick={handleInventoryUpdate} disabled={updateDrug.isPending}>
+              {updateDrug.isPending ? '更新中...' : '更新'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
-function DrugTable({ drugs, isAdmin, onDelete }: { drugs: Drug[]; isAdmin: boolean; onDelete: (id: string) => void }) {
+function DrugTable({ drugs, isAdmin, onDelete, onInventoryEdit }: { drugs: Drug[]; isAdmin: boolean; onDelete: (id: string) => void; onInventoryEdit: (drug: Drug) => void }) {
   const categoryColors: Record<string, string> = {
     Injectable: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
     Oral: 'bg-purple-500/10 text-purple-500 border-purple-500/30',
@@ -188,9 +242,13 @@ function DrugTable({ drugs, isAdmin, onDelete }: { drugs: Drug[]; isAdmin: boole
                   )}
                 </div>
               </TableCell>
-              <TableCell>{drug.concentration}</TableCell>
+              <TableCell>{drug.concentration}mg</TableCell>
               <TableCell>{drug.ester_type === 'Long' ? '長效' : drug.ester_type === 'Short' ? '短效' : '—'}</TableCell>
-              <TableCell><InventoryBadge count={drug.inventory_count} /></TableCell>
+              <TableCell>
+                <button type="button" onClick={() => onInventoryEdit(drug)}>
+                  <InventoryBadge count={drug.inventory_count} unit={drug.primary_category !== 'Injectable' ? '顆' : ''} />
+                </button>
+              </TableCell>
               {isAdmin && (
                 <TableCell>
                   <div className="flex justify-center gap-1">

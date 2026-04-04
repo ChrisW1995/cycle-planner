@@ -248,7 +248,9 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
             <div className="flex flex-wrap gap-2">
               {cycle.cycle_drugs.map((cd) => (
                 <div key={cd.id} className="flex items-center gap-1 rounded-md bg-muted px-3 py-1.5 text-sm">
-                  <span className="font-medium">{cd.drug?.name}</span>
+                  <Link href={`/drugs/${cd.drug_id}/edit`} className="font-medium hover:underline">
+                    {cd.drug?.name}
+                  </Link>
                   <span className="text-muted-foreground">
                     {cd.weekly_dose ? `${cd.weekly_dose}mg/wk` : `${cd.daily_dose}mg/day`}
                   </span>

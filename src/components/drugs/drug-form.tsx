@@ -44,6 +44,18 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(initialData?.image_url || null)
   const [inventoryCount, setInventoryCount] = useState(initialData?.inventory_count?.toString() || '0')
   const [tabsPerBox, setTabsPerBox] = useState(initialData?.tabs_per_box?.toString() || '100')
+  const [inventoryBoxes, setInventoryBoxes] = useState(() => {
+    if (initialData && (initialData.primary_category === 'Oral' || initialData.primary_category === 'PCT') && initialData.tabs_per_box) {
+      return Math.floor(initialData.inventory_count / initialData.tabs_per_box).toString()
+    }
+    return '0'
+  })
+  const [inventoryLoose, setInventoryLoose] = useState(() => {
+    if (initialData && (initialData.primary_category === 'Oral' || initialData.primary_category === 'PCT') && initialData.tabs_per_box) {
+      return (initialData.inventory_count % initialData.tabs_per_box).toString()
+    }
+    return '0'
+  })
   const [mode, setMode] = useState<'template' | 'custom'>(initialData ? 'custom' : 'template')
 
   const handleTemplateSelect = (templateId: string) => {
@@ -67,7 +79,9 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
       sub_category: subCategory,
       ester_type: esterType,
       brand: brand.trim() || null,
-      inventory_count: parseInt(inventoryCount) || 0,
+      inventory_count: (primaryCategory === 'Oral' || primaryCategory === 'PCT')
+        ? (parseInt(inventoryBoxes) || 0) * (parseInt(tabsPerBox) || 100) + (parseInt(inventoryLoose) || 0)
+        : parseInt(inventoryCount) || 0,
       tabs_per_box: (primaryCategory === 'Oral' || primaryCategory === 'PCT') ? (parseInt(tabsPerBox) || null) : null,
       image_url: imageUrl,
     })
@@ -269,21 +283,46 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
               )}
 
               {/* Inventory */}
-              <div className="space-y-2">
-                <Label htmlFor="inventory">庫存數量</Label>
-                <Input
-                  id="inventory"
-                  type="number"
-                  min="0"
-                  value={inventoryCount}
-                  onChange={(e) => setInventoryCount(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {primaryCategory === 'Injectable'
-                    ? '瓶數（每瓶 10ml）'
-                    : '總顆數'}
-                </p>
-              </div>
+              {(primaryCategory === 'Oral' || primaryCategory === 'PCT') ? (
+                <div className="space-y-2">
+                  <Label>庫存數量</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={inventoryBoxes}
+                        onChange={(e) => setInventoryBoxes(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">盒</p>
+                    </div>
+                    <div>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={inventoryLoose}
+                        onChange={(e) => setInventoryLoose(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">顆（散裝）</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    共 {(parseInt(inventoryBoxes) || 0) * (parseInt(tabsPerBox) || 100) + (parseInt(inventoryLoose) || 0)} 顆
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="inventory">庫存數量</Label>
+                  <Input
+                    id="inventory"
+                    type="number"
+                    min="0"
+                    value={inventoryCount}
+                    onChange={(e) => setInventoryCount(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">瓶數（每瓶 10ml）</p>
+                </div>
+              )}
 
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? '儲存中…' : initialData ? '更新藥品' : '新增藥品'}

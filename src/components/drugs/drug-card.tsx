@@ -13,6 +13,7 @@ interface DrugCardProps {
   drug: Drug
   isAdmin: boolean
   onDelete?: (id: string) => void
+  onInventoryEdit?: (drug: Drug) => void
 }
 
 const categoryColors: Record<string, string> = {
@@ -21,7 +22,7 @@ const categoryColors: Record<string, string> = {
   PCT: 'bg-teal-500/10 text-teal-500 border-teal-500/30',
 }
 
-export function DrugCard({ drug, isAdmin, onDelete }: DrugCardProps) {
+export function DrugCard({ drug, isAdmin, onDelete, onInventoryEdit }: DrugCardProps) {
   return (
     <Card className="relative group overflow-hidden rounded-xl">
       {/* Cover image — flush with top rounded corners */}
@@ -91,7 +92,9 @@ export function DrugCard({ drug, isAdmin, onDelete }: DrugCardProps) {
           濃度: <span className="font-medium text-foreground">{drug.concentration} mg/ml</span>
         </p>
         <div className="pt-1.5">
-          <InventoryBadge count={drug.inventory_count} />
+          <button type="button" onClick={() => onInventoryEdit?.(drug)}>
+            <InventoryBadge count={drug.inventory_count} unit={drug.primary_category !== 'Injectable' ? '顆' : ''} />
+          </button>
         </div>
       </CardContent>
     </Card>

@@ -116,11 +116,11 @@ export function Sidebar() {
       <div className="border-t border-border p-3">
         <div className="flex items-center gap-2">
           {!collapsed && (
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 flex items-center gap-1.5">
               <p className="truncate text-sm font-medium">
                 {user?.display_name || user?.username}
               </p>
-              <Badge variant={isAdmin ? 'default' : 'secondary'} className="text-xs mt-0.5">
+              <Badge variant={isAdmin ? 'default' : 'secondary'} className="text-xs shrink-0">
                 {user?.role === 'developer' ? 'Dev' : isAdmin ? 'Admin' : 'Viewer'}
               </Badge>
             </div>
