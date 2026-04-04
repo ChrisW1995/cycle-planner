@@ -169,13 +169,13 @@ function CyclePreviewDialog({ id, onClose }: { id: string; onClose: () => void }
   const handleXLSXExport = () => {
     if (!cycle) return
     const personName = (cycle as any).person?.nickname || 'Unknown'
-    exportScheduleToXLSX(cycle.name || `${personName} Cycle`, personName, cycle.total_weeks, displayCells)
+    exportScheduleToXLSX(cycle.name || `${personName} Cycle`, personName, cycle.total_weeks, displayCells, inventoryDeltas)
   }
 
   const handlePDFExport = () => {
     if (!cycle) return
     const personName = (cycle as any).person?.nickname || 'Unknown'
-    exportScheduleToPDF(cycle.name || 'Cycle', personName, cycle.total_weeks, displayCells)
+    exportScheduleToPDF(cycle.name || 'Cycle', personName, cycle.total_weeks, displayCells, inventoryDeltas)
   }
 
   return (

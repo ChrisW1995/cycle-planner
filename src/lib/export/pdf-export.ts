@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import type { CycleCell } from '@/types'
+import type { CycleCell, DrugInventoryDelta } from '@/types'
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -8,7 +8,8 @@ export function exportScheduleToPDF(
   cycleName: string,
   personName: string,
   totalWeeks: number,
-  cells: CycleCell[]
+  cells: CycleCell[],
+  deltas?: DrugInventoryDelta[]
 ) {
   const doc = new jsPDF({
     orientation: 'landscape',
@@ -28,15 +29,14 @@ export function exportScheduleToPDF(
   doc.setFontSize(16)
   doc.text(`${personName} - ${cycleName || 'Cycle'}`, 14, 15)
 
-  // Table data
+  // Schedule table
   const headers = ['Week', ...DAY_LABELS]
   const body: string[][] = []
 
   for (let week = 1; week <= totalWeeks; week++) {
     const row = [`Week ${week}`]
     for (let day = 1; day <= 7; day++) {
-      const key = `${week}-${day}`
-      const entries = cellMap.get(key) || []
+      const entries = cellMap.get(`${week}-${day}`) || []
       row.push(entries.join('\n'))
     }
     body.push(row)
@@ -75,8 +75,7 @@ export function exportScheduleToPDF(
       cellWidth: 'wrap',
     },
     margin: { left: 10, right: 10 },
-    didDrawPage: (data) => {
-      // Footer
+    didDrawPage: () => {
       doc.setFontSize(7)
       doc.setTextColor(150)
       doc.text(
@@ -86,6 +85,51 @@ export function exportScheduleToPDF(
       )
     },
   })
+
+  // Drug stats table
+  if (deltas && deltas.length > 0) {
+    const finalY = (doc as any).lastAutoTable?.finalY || 22
+    const startY = finalY + 10
+
+    doc.setFontSize(11)
+    doc.setTextColor(0)
+    doc.text('Drug Stats', 14, startY)
+
+    const statsHeaders = ['Drug', 'Needed', 'Qty']
+    const statsBody = deltas.map((d) => {
+      const isOral = d.category === 'Oral' || d.category === 'PCT'
+      return [
+        d.drug_name,
+        isOral ? `${d.needed_ml} tabs` : `${d.needed_ml} ml`,
+        isOral ? `${d.needed_vials} box` : `${d.needed_vials} vial`,
+      ]
+    })
+
+    autoTable(doc, {
+      startY: startY + 3,
+      head: [statsHeaders],
+      body: statsBody,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [40, 40, 40],
+        textColor: [255, 255, 255],
+        fontSize: 8,
+        halign: 'center',
+        fontStyle: 'bold',
+      },
+      bodyStyles: {
+        fontSize: 8,
+        cellPadding: 2,
+      },
+      columnStyles: {
+        0: { cellWidth: 40 },
+        1: { cellWidth: 30, halign: 'right' },
+        2: { cellWidth: 30, halign: 'right' },
+      },
+      margin: { left: 10, right: 10 },
+      tableWidth: 100,
+    })
+  }
 
   doc.save(`${personName}_${cycleName || 'cycle'}.pdf`)
 }

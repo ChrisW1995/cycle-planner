@@ -1,14 +1,36 @@
-import * as XLSX from 'xlsx'
-import type { CycleCell } from '@/types'
+import ExcelJS from 'exceljs'
+import type { CycleCell, DrugInventoryDelta } from '@/types'
 
 const DAY_LABELS = ['一', '二', '三', '四', '五', '六', '日']
+
+const HEADER_FILL: ExcelJS.FillPattern = {
+  type: 'pattern',
+  pattern: 'solid',
+  fgColor: { argb: 'FF282828' },
+}
+const HEADER_FONT: Partial<ExcelJS.Font> = {
+  bold: true,
+  size: 10,
+  color: { argb: 'FFFFFFFF' },
+}
+const BODY_FONT: Partial<ExcelJS.Font> = { size: 9 }
+const THIN_BORDER: Partial<ExcelJS.Borders> = {
+  top: { style: 'thin' },
+  left: { style: 'thin' },
+  bottom: { style: 'thin' },
+  right: { style: 'thin' },
+}
 
 export function exportScheduleToXLSX(
   cycleName: string,
   personName: string,
   totalWeeks: number,
-  cells: CycleCell[]
+  cells: CycleCell[],
+  deltas?: DrugInventoryDelta[]
 ) {
+  const wb = new ExcelJS.Workbook()
+  const ws = wb.addWorksheet(cycleName || 'Cycle')
+
   // Build cell map
   const cellMap = new Map<string, string[]>()
   for (const cell of cells) {
@@ -17,49 +39,86 @@ export function exportScheduleToXLSX(
     if (cell.display_value) cellMap.get(key)!.push(cell.display_value)
   }
 
-  // Build rows
-  const rows: string[][] = []
-  rows.push(['Week', ...DAY_LABELS])
+  // --- Schedule Table ---
+  // Header row
+  const headerRow = ws.addRow(['Week', ...DAY_LABELS])
+  headerRow.eachCell((cell) => {
+    cell.fill = HEADER_FILL
+    cell.font = HEADER_FONT
+    cell.alignment = { horizontal: 'center', vertical: 'middle' }
+    cell.border = THIN_BORDER
+  })
 
+  // Data rows
   for (let week = 1; week <= totalWeeks; week++) {
-    const row = [`Week ${week}`]
+    const rowData = [`Week ${week}`]
     for (let day = 1; day <= 7; day++) {
       const entries = cellMap.get(`${week}-${day}`) || []
-      row.push(entries.join('\n'))
+      rowData.push(entries.join('\n'))
     }
-    rows.push(row)
+    const row = ws.addRow(rowData)
+    row.eachCell((cell, colNumber) => {
+      cell.font = BODY_FONT
+      cell.alignment = { wrapText: true, vertical: 'top' }
+      cell.border = THIN_BORDER
+      if (colNumber === 1) {
+        cell.font = { ...BODY_FONT, bold: true }
+        cell.alignment = { horizontal: 'center', vertical: 'middle' }
+      }
+    })
   }
-
-  const ws = XLSX.utils.aoa_to_sheet(rows)
 
   // Auto-fit column widths
-  const colWidths = rows[0].map((_, colIdx) => {
-    let maxLen = 0
-    for (const row of rows) {
-      const cellVal = row[colIdx] || ''
-      // For multiline cells, use the longest line
-      const lines = cellVal.split('\n')
-      for (const line of lines) {
+  ws.getColumn(1).width = 12
+  for (let c = 2; c <= 8; c++) {
+    let maxLen = DAY_LABELS[c - 2].length
+    ws.getColumn(c).eachCell((cell) => {
+      const val = cell.value?.toString() || ''
+      for (const line of val.split('\n')) {
         maxLen = Math.max(maxLen, line.length)
       }
-    }
-    return { wch: Math.max(maxLen + 2, 8) }
-  })
-  ws['!cols'] = colWidths
+    })
+    ws.getColumn(c).width = Math.max(maxLen * 1.3 + 2, 14)
+  }
 
-  // Enable text wrapping for cells with newlines
-  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
-  for (let r = range.s.r; r <= range.e.r; r++) {
-    for (let c = range.s.c; c <= range.e.c; c++) {
-      const addr = XLSX.utils.encode_cell({ r, c })
-      if (ws[addr]) {
-        if (!ws[addr].s) ws[addr].s = {}
-        ws[addr].s.alignment = { wrapText: true, vertical: 'top' }
-      }
+  // --- Drug Stats Table ---
+  if (deltas && deltas.length > 0) {
+    ws.addRow([]) // blank row
+
+    const statsHeaderRow = ws.addRow(['Drug Stats', '', ''])
+    statsHeaderRow.getCell(1).font = { bold: true, size: 11 }
+
+    const statsColHeader = ws.addRow(['藥物', '需求量', '需求數'])
+    statsColHeader.eachCell((cell) => {
+      cell.fill = HEADER_FILL
+      cell.font = HEADER_FONT
+      cell.alignment = { horizontal: 'center', vertical: 'middle' }
+      cell.border = THIN_BORDER
+    })
+
+    for (const d of deltas) {
+      const isOral = d.category === 'Oral' || d.category === 'PCT'
+      const row = ws.addRow([
+        d.drug_name,
+        isOral ? `${d.needed_ml} 顆` : `${d.needed_ml} ml`,
+        isOral ? `${d.needed_vials} 盒` : `${d.needed_vials} 瓶`,
+      ])
+      row.eachCell((cell) => {
+        cell.font = BODY_FONT
+        cell.border = THIN_BORDER
+        cell.alignment = { vertical: 'middle' }
+      })
     }
   }
 
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, cycleName || 'Cycle')
-  XLSX.writeFile(wb, `${personName}_${cycleName || 'cycle'}.xlsx`)
+  // Save
+  wb.xlsx.writeBuffer().then((buffer) => {
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${personName}_${cycleName || 'cycle'}.xlsx`
+    link.click()
+    URL.revokeObjectURL(url)
+  })
 }

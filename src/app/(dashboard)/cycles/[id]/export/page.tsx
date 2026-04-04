@@ -82,7 +82,8 @@ export default function ExportPage({ params }: { params: Promise<{ id: string }>
       cycle.name || `${personName} Cycle`,
       personName,
       cycle.total_weeks,
-      displayCells
+      displayCells,
+      inventoryDeltas
     )
     promptArchive()
   }
@@ -94,7 +95,8 @@ export default function ExportPage({ params }: { params: Promise<{ id: string }>
       cycle.name || 'Cycle',
       personName,
       cycle.total_weeks,
-      displayCells
+      displayCells,
+      inventoryDeltas
     )
     promptArchive()
   }
