@@ -6,13 +6,13 @@ import { useDrugs } from '@/hooks/use-drugs'
 import { useAuth } from '@/hooks/use-auth'
 import { generateAllCells } from '@/lib/calculations/schedule-engine'
 import { calculateInventoryDeltas } from '@/lib/calculations/vial-calculator'
-import { exportScheduleToCSV, downloadCSV } from '@/lib/export/csv-export'
+import { exportScheduleToXLSX } from '@/lib/export/xlsx-export'
 import { exportScheduleToPDF } from '@/lib/export/pdf-export'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Plus, Eye, Pencil, Trash2, FileSpreadsheet, FileText } from 'lucide-react'
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Plus, Eye, Pencil, Trash2, FileSpreadsheet, FileText, XIcon } from 'lucide-react'
 import Link from 'next/link'
 import type { CycleStatus, CycleCell } from '@/types'
 
@@ -166,11 +166,10 @@ function CyclePreviewDialog({ id, onClose }: { id: string; onClose: () => void }
     return calculateInventoryDeltas(cycle.cycle_drugs as any, allDrugs as any)
   }, [cycle, allDrugs])
 
-  const handleCSVExport = () => {
+  const handleXLSXExport = () => {
     if (!cycle) return
     const personName = (cycle as any).person?.nickname || 'Unknown'
-    const csv = exportScheduleToCSV(cycle.name || `${personName} Cycle`, cycle.total_weeks, displayCells)
-    downloadCSV(csv, `${personName}_${cycle.name || 'cycle'}.csv`)
+    exportScheduleToXLSX(cycle.name || `${personName} Cycle`, personName, cycle.total_weeks, displayCells)
   }
 
   const handlePDFExport = () => {
@@ -181,31 +180,47 @@ function CyclePreviewDialog({ id, onClose }: { id: string; onClose: () => void }
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {isLoading ? '載入中...' : (cycle?.name || `${(cycle as any)?.person?.nickname} 的課表`)}
-          </DialogTitle>
-          {cycle && (
-            <DialogDescription>
-              {cycle.total_weeks} 週
-              {cycle.start_date && ` | 開始: ${new Date(cycle.start_date).toLocaleDateString('zh-TW')}`}
-              {' | '}
-              {statusLabels[cycle.status]}
-            </DialogDescription>
-          )}
-        </DialogHeader>
+      <DialogContent className="max-w-[95vw] max-h-[90vh] flex flex-col" showCloseButton={false}>
+        {/* Sticky header with title + export + close */}
+        <div className="flex items-start justify-between gap-4">
+          <DialogHeader className="flex-1">
+            <DialogTitle>
+              {isLoading ? '載入中...' : (cycle?.name || `${(cycle as any)?.person?.nickname} 的課表`)}
+            </DialogTitle>
+            {cycle && (
+              <DialogDescription>
+                {cycle.total_weeks} 週
+                {cycle.start_date && ` | 開始: ${new Date(cycle.start_date).toLocaleDateString('zh-TW')}`}
+                {' | '}
+                {statusLabels[cycle.status]}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={handleXLSXExport} disabled={isLoading}>
+              <FileSpreadsheet className="mr-1.5 h-4 w-4" />
+              XLSX
+            </Button>
+            <Button variant="outline" size="sm" onClick={handlePDFExport} disabled={isLoading}>
+              <FileText className="mr-1.5 h-4 w-4" />
+              PDF
+            </Button>
+            <DialogClose render={<Button variant="ghost" size="icon-sm" />}>
+              <XIcon className="h-4 w-4" />
+            </DialogClose>
+          </div>
+        </div>
 
         {isLoading ? (
           <div className="py-8 text-center text-muted-foreground">載入中...</div>
         ) : cycle && (
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto flex-1 -mx-4 px-4">
             {/* Schedule Grid */}
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr>
-                    <th className="border border-border px-3 py-2 bg-muted text-left font-medium">Week</th>
+                    <th className="border border-border px-3 py-2 bg-muted text-left font-medium whitespace-nowrap">Week</th>
                     {DAY_LABELS.map((day, i) => (
                       <th key={i} className="border border-border px-3 py-2 bg-muted text-center font-medium min-w-[100px]">
                         {day}
@@ -218,7 +233,7 @@ function CyclePreviewDialog({ id, onClose }: { id: string; onClose: () => void }
                     const weekNum = weekIdx + 1
                     return (
                       <tr key={weekNum}>
-                        <td className="border border-border px-3 py-2 font-medium text-muted-foreground bg-muted/50">
+                        <td className="border border-border px-3 py-2 font-medium text-muted-foreground bg-muted/50 whitespace-nowrap">
                           Week {weekNum}
                         </td>
                         {Array.from({ length: 7 }, (_, dayIdx) => {
@@ -226,7 +241,7 @@ function CyclePreviewDialog({ id, onClose }: { id: string; onClose: () => void }
                           return (
                             <td key={dayIdx} className="border border-border px-2 py-1.5 align-top text-xs">
                               {entries.map((entry, i) => (
-                                <div key={i} className="leading-tight">{entry}</div>
+                                <div key={i} className="leading-tight whitespace-nowrap">{entry}</div>
                               ))}
                             </td>
                           )
@@ -271,16 +286,6 @@ function CyclePreviewDialog({ id, onClose }: { id: string; onClose: () => void }
           </div>
         )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={handleCSVExport} disabled={isLoading}>
-            <FileSpreadsheet className="mr-2 h-4 w-4" />
-            匯出 CSV
-          </Button>
-          <Button variant="outline" onClick={handlePDFExport} disabled={isLoading}>
-            <FileText className="mr-2 h-4 w-4" />
-            匯出 PDF
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

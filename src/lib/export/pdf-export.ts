@@ -2,7 +2,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { CycleCell } from '@/types'
 
-const DAY_LABELS = ['一', '二', '三', '四', '五', '六', '日']
+const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 export function exportScheduleToPDF(
   cycleName: string,

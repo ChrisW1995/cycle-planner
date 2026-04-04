@@ -5,7 +5,7 @@ import { useCycle, useCycleCells, useUpdateCycleStatus } from '@/hooks/use-cycle
 import { useDrugs } from '@/hooks/use-drugs'
 import { generateAllCells } from '@/lib/calculations/schedule-engine'
 import { calculateInventoryDeltas } from '@/lib/calculations/vial-calculator'
-import { exportScheduleToCSV, downloadCSV } from '@/lib/export/csv-export'
+import { exportScheduleToXLSX } from '@/lib/export/xlsx-export'
 import { exportScheduleToPDF } from '@/lib/export/pdf-export'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -75,15 +75,15 @@ export default function ExportPage({ params }: { params: Promise<{ id: string }>
     })
   }
 
-  const handleCSVExport = () => {
+  const handleXLSXExport = () => {
     if (!cycle) return
     const personName = (cycle as any).person?.nickname || 'Unknown'
-    const csv = exportScheduleToCSV(
+    exportScheduleToXLSX(
       cycle.name || `${personName} Cycle`,
+      personName,
       cycle.total_weeks,
       displayCells
     )
-    downloadCSV(csv, `${personName}_${cycle.name || 'cycle'}.csv`)
     promptArchive()
   }
 
@@ -118,9 +118,9 @@ export default function ExportPage({ params }: { params: Promise<{ id: string }>
 
       {/* Export Buttons */}
       <div className="flex gap-4">
-        <Button onClick={handleCSVExport} size="lg">
+        <Button onClick={handleXLSXExport} size="lg">
           <FileSpreadsheet className="mr-2 h-5 w-5" />
-          匯出 CSV
+          匯出 XLSX
         </Button>
         <Button onClick={handlePDFExport} size="lg" variant="outline">
           <FileText className="mr-2 h-5 w-5" />
