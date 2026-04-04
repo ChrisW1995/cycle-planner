@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { statusLabels } from '@/lib/constants/cycle-status'
 import { Users, Pill, Calendar, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
+import type { CycleStatus } from '@/types'
 
 interface DashboardStats {
   totalPeople: number
@@ -12,6 +14,7 @@ interface DashboardStats {
   totalCycles: number
   needsCycle: number
   lowStockDrugs: number
+  cyclesByStatus: Record<string, number>
 }
 
 export default function DashboardPage() {
@@ -21,18 +24,27 @@ export default function DashboardPage() {
     totalCycles: 0,
     needsCycle: 0,
     lowStockDrugs: 0,
+    cyclesByStatus: {},
   })
   const supabase = createClient()
 
   useEffect(() => {
     const fetchStats = async () => {
-      const [people, drugs, cycles, needsCycle, lowStock] = await Promise.all([
+      const [people, drugs, cycles, needsCycle, lowStock, cycleStatuses] = await Promise.all([
         supabase.from('people').select('id', { count: 'exact', head: true }),
         supabase.from('drugs').select('id', { count: 'exact', head: true }),
         supabase.from('cycles').select('id', { count: 'exact', head: true }),
         supabase.from('people').select('id', { count: 'exact', head: true }).eq('needs_cycle', true),
         supabase.from('drugs').select('id', { count: 'exact', head: true }).lte('inventory_count', 1),
+        supabase.from('cycles').select('status'),
       ])
+
+      const byStatus: Record<string, number> = {}
+      if (cycleStatuses.data) {
+        for (const row of cycleStatuses.data) {
+          byStatus[row.status] = (byStatus[row.status] || 0) + 1
+        }
+      }
 
       setStats({
         totalPeople: people.count || 0,
@@ -40,6 +52,7 @@ export default function DashboardPage() {
         totalCycles: cycles.count || 0,
         needsCycle: needsCycle.count || 0,
         lowStockDrugs: lowStock.count || 0,
+        cyclesByStatus: byStatus,
       })
     }
 
@@ -93,6 +106,24 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold">{card.value}</p>
+                {card.title === '課表總數' && stats.totalCycles > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                    {(['Scheduled', 'Planned', 'Completed'] as CycleStatus[]).map((s) => {
+                      const count = stats.cyclesByStatus[s] || 0
+                      if (count === 0) return null
+                      return (
+                        <span key={s}>
+                          <span className={
+                            s === 'Scheduled' ? 'text-blue-500' :
+                            s === 'Planned' ? 'text-amber-500' :
+                            'text-green-500'
+                          }>{statusLabels[s]}</span>
+                          {' '}{count}
+                        </span>
+                      )
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </Link>

@@ -11,21 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { PersonForm } from '@/components/people/person-form'
 import { CalendarPlus, Pencil, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { statusColors, statusLabels } from '@/lib/constants/cycle-status'
 import type { CycleStatus } from '@/types'
-
-const statusColors: Record<CycleStatus, string> = {
-  Scheduled: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
-  Planned: 'bg-amber-500/10 text-amber-500 border-amber-500/30',
-  Completed: 'bg-green-500/10 text-green-500 border-green-500/30',
-  Archived: 'bg-zinc-500/10 text-zinc-500 border-zinc-500/30',
-}
-
-const statusLabels: Record<CycleStatus, string> = {
-  Scheduled: '已預定',
-  Planned: '已排制',
-  Completed: '已完成',
-  Archived: '已封存',
-}
 
 export default function PersonDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)

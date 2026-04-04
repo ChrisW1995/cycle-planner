@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal, Pencil, Trash2, CalendarPlus, Bell } from 'lucide-react'
-import type { Person } from '@/types'
+import { statusColors, statusLabels } from '@/lib/constants/cycle-status'
+import type { Person, CycleStatus } from '@/types'
 import Link from 'next/link'
 
 interface PersonCardProps {
@@ -15,7 +16,17 @@ interface PersonCardProps {
   onToggleNeedsCycle?: (id: string, needs: boolean) => void
 }
 
+function getLatestCycleStatus(person: Person): CycleStatus | null {
+  if (!person.cycles?.length) return null
+  const sorted = [...person.cycles].sort((a, b) =>
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  )
+  return sorted[0].status
+}
+
 export function PersonCard({ person, isAdmin, onDelete, onToggleNeedsCycle }: PersonCardProps) {
+  const latestStatus = getLatestCycleStatus(person)
+
   return (
     <Link href={`/people/${person.id}`}>
       <Card className="relative group transition-colors hover:bg-accent/50 cursor-pointer">
@@ -23,11 +34,15 @@ export function PersonCard({ person, isAdmin, onDelete, onToggleNeedsCycle }: Pe
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base font-semibold">{person.nickname}</CardTitle>
-              {person.needs_cycle && (
+              {person.needs_cycle ? (
                 <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/30 text-xs">
                   待排課表
                 </Badge>
-              )}
+              ) : latestStatus ? (
+                <Badge variant="outline" className={`${statusColors[latestStatus]} text-xs`}>
+                  {statusLabels[latestStatus]}
+                </Badge>
+              ) : null}
             </div>
             {isAdmin && (
               <DropdownMenu>
@@ -80,6 +95,11 @@ export function PersonCard({ person, isAdmin, onDelete, onToggleNeedsCycle }: Pe
           {person.last_cycle_date && (
             <p className="text-xs text-muted-foreground">
               最近課表: {new Date(person.last_cycle_date).toLocaleDateString('zh-TW')}
+            </p>
+          )}
+          {person.notes && (
+            <p className="text-xs text-muted-foreground truncate">
+              備注: {person.notes}
             </p>
           )}
           {person.cycle_goal_notes && (

@@ -12,6 +12,8 @@ import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Search, LayoutGrid, List } from 'lucide-react'
+import { statusColors, statusLabels } from '@/lib/constants/cycle-status'
+import type { CycleStatus } from '@/types'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 
@@ -165,9 +167,18 @@ function PeopleContent() {
                   <TableCell>{person.weight ? `${person.weight}kg` : '—'}</TableCell>
                   <TableCell>{person.body_fat ? `${person.body_fat}%` : '—'}</TableCell>
                   <TableCell>
-                    {person.needs_cycle && (
+                    {person.needs_cycle ? (
                       <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/30 text-xs">待排課表</Badge>
-                    )}
+                    ) : (() => {
+                      const latest = person.cycles?.length
+                        ? [...person.cycles].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+                        : null
+                      return latest ? (
+                        <Badge variant="outline" className={`${statusColors[latest.status as CycleStatus]} text-xs`}>
+                          {statusLabels[latest.status as CycleStatus]}
+                        </Badge>
+                      ) : <span className="text-muted-foreground">—</span>
+                    })()}
                   </TableCell>
                   <TableCell>
                     <Button variant="ghost" size="sm" render={<Link href={`/people/${person.id}`} />}>

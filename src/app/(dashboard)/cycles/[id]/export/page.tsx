@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ArrowLeft, FileSpreadsheet, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { formatOralInventory } from '@/lib/utils'
 import type { CycleCell } from '@/types'
 
 const DAY_LABELS = ['一', '二', '三', '四', '五', '六', '日']
@@ -197,7 +198,7 @@ export default function ExportPage({ params }: { params: Promise<{ id: string }>
                       <TableRow key={d.drug_id}>
                         <TableCell className="font-medium">{d.drug_name}</TableCell>
                         <TableCell className="text-right">
-                          {isOral ? `${d.needed_ml} 顆` : `${d.needed_ml} ml`}
+                          {isOral ? formatOralInventory(d.needed_ml, d.tabs_per_box) : `${d.needed_ml} ml`}
                         </TableCell>
                         <TableCell className="text-right">
                           {isOral ? `${d.needed_vials} 盒` : `${d.needed_vials} 瓶`}

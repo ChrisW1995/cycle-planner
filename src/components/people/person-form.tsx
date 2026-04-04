@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { Person } from '@/types'
 
@@ -15,6 +16,7 @@ interface PersonFormProps {
     weight: number | null
     body_fat: number | null
     age: number | null
+    notes: string | null
   }) => void
   loading?: boolean
 }
@@ -25,6 +27,7 @@ export function PersonForm({ initialData, onSubmit, loading }: PersonFormProps) 
   const [weight, setWeight] = useState(initialData?.weight?.toString() || '')
   const [bodyFat, setBodyFat] = useState(initialData?.body_fat?.toString() || '')
   const [age, setAge] = useState(initialData?.age?.toString() || '')
+  const [notes, setNotes] = useState(initialData?.notes || '')
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,6 +37,7 @@ export function PersonForm({ initialData, onSubmit, loading }: PersonFormProps) 
       weight: weight ? parseFloat(weight) : null,
       body_fat: bodyFat ? parseFloat(bodyFat) : null,
       age: age ? parseInt(age) : null,
+      notes: notes.trim() || null,
     })
   }
 
@@ -102,6 +106,17 @@ export function PersonForm({ initialData, onSubmit, loading }: PersonFormProps) 
                 placeholder="28"
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes">備注</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="人員備注..."
+              rows={3}
+            />
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>

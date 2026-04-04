@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useDrugTemplates, useBrandSuggestions } from '@/hooks/use-drugs'
+import { deleteDrugImage } from '@/lib/supabase/storage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -57,6 +58,7 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
     return '0'
   })
   const [mode, setMode] = useState<'template' | 'custom'>(initialData ? 'custom' : 'template')
+  const pendingDeleteUrls = useRef<string[]>([])
 
   const handleTemplateSelect = (templateId: string) => {
     const template = templates?.find((t) => t.id === templateId)
@@ -69,8 +71,19 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
     setEsterType(template.ester_type)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handlePendingDelete = (url: string) => {
+    if (!pendingDeleteUrls.current.includes(url)) {
+      pendingDeleteUrls.current.push(url)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // Delete pending images before submitting
+    for (const url of pendingDeleteUrls.current) {
+      try { await deleteDrugImage(url) } catch { /* ignore */ }
+    }
+    pendingDeleteUrls.current = []
     onSubmit({
       template_id: selectedTemplate?.id || initialData?.template_id || null,
       name,
@@ -125,7 +138,7 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
           <div className="lg:grid lg:grid-cols-[280px_1fr] lg:gap-8">
             {/* Left column: image (desktop) */}
             <div className="hidden lg:flex lg:items-center lg:justify-center">
-              <DrugImageUpload currentUrl={imageUrl} onUrlChange={setImageUrl} />
+              <DrugImageUpload currentUrl={imageUrl} onUrlChange={setImageUrl} onPendingDelete={handlePendingDelete} />
             </div>
 
             {/* Right column: all fields */}
@@ -265,7 +278,7 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
 
               {/* Drug Image (mobile) */}
               <div className="lg:hidden">
-                <DrugImageUpload currentUrl={imageUrl} onUrlChange={setImageUrl} />
+                <DrugImageUpload currentUrl={imageUrl} onUrlChange={setImageUrl} onPendingDelete={handlePendingDelete} />
               </div>
 
               {/* Tabs per box (oral only) */}

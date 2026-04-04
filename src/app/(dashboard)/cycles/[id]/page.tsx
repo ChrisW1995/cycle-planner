@@ -7,31 +7,22 @@ import { useAuth } from '@/hooks/use-auth'
 import { ScheduleGrid } from '@/components/cycles/schedule-grid'
 import { DrugSelector } from '@/components/cycles/drug-selector'
 import { CalculationSummary } from '@/components/cycles/calculation-summary'
+import { CycleExportDialog } from '@/components/cycles/cycle-export-dialog'
 import { generateAllCells } from '@/lib/calculations/schedule-engine'
 import { calculateInventoryDeltas } from '@/lib/calculations/vial-calculator'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Plus, Minus, Save, ArrowLeft, Download, Trash2, MoreHorizontal, Archive } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { statusColors, statusLabels } from '@/lib/constants/cycle-status'
 import type { CycleStatus, CycleCell } from '@/types'
-
-const statusColors: Record<CycleStatus, string> = {
-  Scheduled: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
-  Planned: 'bg-amber-500/10 text-amber-500 border-amber-500/30',
-  Completed: 'bg-green-500/10 text-green-500 border-green-500/30',
-  Archived: 'bg-zinc-500/10 text-zinc-500 border-zinc-500/30',
-}
-const statusLabels: Record<CycleStatus, string> = {
-  Scheduled: '已預定',
-  Planned: '已排制',
-  Completed: '已完成',
-  Archived: '已封存',
-}
 
 export default function CycleBuilderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -49,7 +40,9 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
   const deleteCycle = useDeleteCycle()
   const [drugSelectorOpen, setDrugSelectorOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [localOverrides, setLocalOverrides] = useState<Map<string, { value: string; ml: number | null }>>(new Map())
+  const [localNotes, setLocalNotes] = useState<string | null>(null)
 
   // Generate cells from cycle drugs
   const generatedCells = useMemo(() => {
@@ -157,10 +150,23 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
                 {statusLabels[cycle.status]}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {cycle.total_weeks} 週
-              {cycle.start_date && ` | 開始: ${new Date(cycle.start_date).toLocaleDateString('zh-TW')}`}
-            </p>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>{cycle.total_weeks} 週</span>
+              {isEditable ? (
+                <>
+                  <span>|</span>
+                  <span>開始:</span>
+                  <Input
+                    type="date"
+                    className="h-7 w-auto text-sm"
+                    value={cycle.start_date || ''}
+                    onChange={(e) => updateCycle.mutate({ id, start_date: e.target.value || null })}
+                  />
+                </>
+              ) : (
+                cycle.start_date && <span>| 開始: {new Date(cycle.start_date).toLocaleDateString('zh-TW')}</span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -188,7 +194,7 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
               </Button>
             </>
           )}
-          <Button variant="outline" render={<Link href={`/cycles/${id}/export`} />}>
+          <Button variant="outline" onClick={() => setExportDialogOpen(true)}>
               <Download className="mr-2 h-4 w-4" />
               匯出
           </Button>
@@ -218,6 +224,24 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
           )}
         </div>
       </div>
+
+      {/* Notes */}
+      {isEditable ? (
+        <Textarea
+          value={localNotes ?? cycle.notes ?? ''}
+          onChange={(e) => setLocalNotes(e.target.value)}
+          onBlur={() => {
+            if (localNotes !== null && localNotes !== (cycle.notes ?? '')) {
+              updateCycle.mutate({ id, notes: localNotes || null })
+            }
+          }}
+          placeholder="課表備注..."
+          rows={2}
+          className="text-sm"
+        />
+      ) : cycle.notes ? (
+        <p className="text-sm text-muted-foreground">{cycle.notes}</p>
+      ) : null}
 
       {/* Controls */}
       {isEditable && (
@@ -326,6 +350,9 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Export Dialog */}
+      <CycleExportDialog id={id} open={exportDialogOpen} onOpenChange={setExportDialogOpen} />
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { formatOralInventory } from '@/lib/utils'
 import type { CycleCell, DrugInventoryDelta } from '@/types'
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -100,8 +101,8 @@ export function exportScheduleToPDF(
       const isOral = d.category === 'Oral' || d.category === 'PCT'
       return [
         d.drug_name,
-        isOral ? `${d.needed_ml} tabs` : `${d.needed_ml} ml`,
-        isOral ? `${d.needed_vials} box` : `${d.needed_vials} vial`,
+        isOral ? formatOralInventory(d.needed_ml, d.tabs_per_box) : `${d.needed_ml} ml`,
+        isOral ? `${d.needed_vials} 盒` : `${d.needed_vials} 瓶`,
       ]
     })
 

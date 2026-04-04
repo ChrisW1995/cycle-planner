@@ -1,7 +1,8 @@
 import ExcelJS from 'exceljs'
+import { formatOralInventory } from '@/lib/utils'
 import type { CycleCell, DrugInventoryDelta } from '@/types'
 
-const DAY_LABELS = ['一', '二', '三', '四', '五', '六', '日']
+const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 const HEADER_FILL: ExcelJS.FillPattern = {
   type: 'pattern',
@@ -42,6 +43,7 @@ export function exportScheduleToXLSX(
   // --- Schedule Table ---
   // Header row
   const headerRow = ws.addRow(['Week', ...DAY_LABELS])
+  headerRow.height = 24
   headerRow.eachCell((cell) => {
     cell.fill = HEADER_FILL
     cell.font = HEADER_FONT
@@ -57,6 +59,7 @@ export function exportScheduleToXLSX(
       rowData.push(entries.join('\n'))
     }
     const row = ws.addRow(rowData)
+    row.height = 30
     row.eachCell((cell, colNumber) => {
       cell.font = BODY_FONT
       cell.alignment = { wrapText: true, vertical: 'top' }
@@ -100,7 +103,7 @@ export function exportScheduleToXLSX(
       const isOral = d.category === 'Oral' || d.category === 'PCT'
       const row = ws.addRow([
         d.drug_name,
-        isOral ? `${d.needed_ml} 顆` : `${d.needed_ml} ml`,
+        isOral ? formatOralInventory(d.needed_ml, d.tabs_per_box) : `${d.needed_ml} ml`,
         isOral ? `${d.needed_vials} 盒` : `${d.needed_vials} 瓶`,
       ])
       row.eachCell((cell) => {

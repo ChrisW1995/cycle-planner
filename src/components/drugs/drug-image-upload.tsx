@@ -10,9 +10,10 @@ import { toast } from 'sonner'
 interface DrugImageUploadProps {
   currentUrl: string | null
   onUrlChange: (url: string | null) => void
+  onPendingDelete?: (url: string) => void
 }
 
-export function DrugImageUpload({ currentUrl, onUrlChange }: DrugImageUploadProps) {
+export function DrugImageUpload({ currentUrl, onUrlChange, onPendingDelete }: DrugImageUploadProps) {
   const [uploading, setUploading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -33,7 +34,11 @@ export function DrugImageUpload({ currentUrl, onUrlChange }: DrugImageUploadProp
     setUploading(true)
     try {
       if (currentUrl) {
-        await deleteDrugImage(currentUrl)
+        if (onPendingDelete) {
+          onPendingDelete(currentUrl)
+        } else {
+          await deleteDrugImage(currentUrl)
+        }
       }
       const url = await uploadDrugImage(file)
       onUrlChange(url)
@@ -48,12 +53,17 @@ export function DrugImageUpload({ currentUrl, onUrlChange }: DrugImageUploadProp
 
   const handleRemove = async () => {
     if (!currentUrl) return
-    try {
-      await deleteDrugImage(currentUrl)
+    if (onPendingDelete) {
+      onPendingDelete(currentUrl)
       onUrlChange(null)
-      toast.success('圖片已移除')
-    } catch (error) {
-      toast.error('移除失敗', { description: (error as Error).message })
+    } else {
+      try {
+        await deleteDrugImage(currentUrl)
+        onUrlChange(null)
+        toast.success('圖片已移除')
+      } catch (error) {
+        toast.error('移除失敗', { description: (error as Error).message })
+      }
     }
   }
 

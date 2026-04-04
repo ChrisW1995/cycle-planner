@@ -41,6 +41,7 @@ export interface Person {
   age: number | null
   needs_cycle: boolean
   cycle_goal_notes: string | null
+  notes: string | null
   created_at: string
   updated_at: string
   // Joined fields
