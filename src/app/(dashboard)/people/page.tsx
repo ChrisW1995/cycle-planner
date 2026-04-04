@@ -9,7 +9,9 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Plus, Search } from 'lucide-react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Plus, Search, LayoutGrid, List } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 
@@ -28,6 +30,12 @@ function PeopleContent() {
   const { isAdmin } = useAuth()
   const searchParams = useSearchParams()
 
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('people-view-mode') as 'grid' | 'list') || 'grid'
+    }
+    return 'grid'
+  })
   const [search, setSearch] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [needsCycleTarget, setNeedsCycleTarget] = useState<{ id: string; needs: boolean } | null>(null)
@@ -80,12 +88,32 @@ function PeopleContent() {
           人員管理
           {filterNeedsCycle && <span className="text-amber-500 ml-2 text-lg">（待排課表）</span>}
         </h1>
-        {isAdmin && (
-          <Button render={<Link href="/people/new" />}>
-              <Plus className="mr-2 h-4 w-4" />
-              新增人員
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-md border border-border">
+            <Button
+              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+              size="icon"
+              className="h-9 w-9 rounded-r-none"
+              onClick={() => { setViewMode('grid'); localStorage.setItem('people-view-mode', 'grid') }}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+              size="icon"
+              className="h-9 w-9 rounded-l-none"
+              onClick={() => { setViewMode('list'); localStorage.setItem('people-view-mode', 'list') }}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+          {isAdmin && (
+            <Button render={<Link href="/people/new" />}>
+                <Plus className="mr-2 h-4 w-4" />
+                新增人員
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="relative max-w-sm">
@@ -102,7 +130,7 @@ function PeopleContent() {
         <p className="text-muted-foreground py-12 text-center">
           {people?.length === 0 ? '尚未新增任何人員' : '沒有符合搜尋的結果'}
         </p>
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered?.map((person) => (
             <PersonCard
@@ -113,6 +141,43 @@ function PeopleContent() {
               onToggleNeedsCycle={handleToggleNeedsCycle}
             />
           ))}
+        </div>
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>暱稱</TableHead>
+                <TableHead>年紀</TableHead>
+                <TableHead>身高</TableHead>
+                <TableHead>體重</TableHead>
+                <TableHead>體脂</TableHead>
+                <TableHead>狀態</TableHead>
+                <TableHead className="w-20">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered?.map((person) => (
+                <TableRow key={person.id}>
+                  <TableCell className="font-medium">{person.nickname}</TableCell>
+                  <TableCell>{person.age || '—'}</TableCell>
+                  <TableCell>{person.height ? `${person.height}cm` : '—'}</TableCell>
+                  <TableCell>{person.weight ? `${person.weight}kg` : '—'}</TableCell>
+                  <TableCell>{person.body_fat ? `${person.body_fat}%` : '—'}</TableCell>
+                  <TableCell>
+                    {person.needs_cycle && (
+                      <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/30 text-xs">待排課表</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="sm" render={<Link href={`/people/${person.id}`} />}>
+                      查看
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
 

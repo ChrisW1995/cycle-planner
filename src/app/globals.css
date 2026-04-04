@@ -127,4 +127,9 @@
   html {
     @apply font-sans;
   }
+  /* Number input spinner arrows — use foreground color for dark mode readability */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    filter: invert(1);
+  }
 }

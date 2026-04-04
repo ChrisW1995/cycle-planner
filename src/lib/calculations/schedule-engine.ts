@@ -17,6 +17,13 @@ interface CellData {
   is_manual_override: boolean
 }
 
+/** Strip trailing concentration number from drug name for compact display */
+function shortName(name: string, concentration: number): string {
+  // "TestE 300" + 300 → "TestE", "Tbol 10" + 10 → "Tbol"
+  const suffix = ` ${concentration}`
+  return name.endsWith(suffix) ? name.slice(0, -suffix.length) : name
+}
+
 /**
  * Generate schedule cells for a cycle drug based on auto-calculation rules.
  *
@@ -43,7 +50,7 @@ export function generateCellsForDrug(
           cycle_drug_id: cycleDrug.id,
           week_number: week,
           day_of_week: 1,
-          display_value: `${drug.name} ${mlPerInjection}ml`,
+          display_value: `${shortName(drug.name, drug.concentration)} ${mlPerInjection}ml`,
           ml_amount: mlPerInjection,
           is_manual_override: false,
         })
@@ -52,7 +59,7 @@ export function generateCellsForDrug(
           cycle_drug_id: cycleDrug.id,
           week_number: week,
           day_of_week: 4,
-          display_value: `${drug.name} ${mlPerInjection}ml`,
+          display_value: `${shortName(drug.name, drug.concentration)} ${mlPerInjection}ml`,
           ml_amount: mlPerInjection,
           is_manual_override: false,
         })
@@ -72,7 +79,7 @@ export function generateCellsForDrug(
               cycle_drug_id: cycleDrug.id,
               week_number: week,
               day_of_week: day,
-              display_value: `${drug.name} ${mlPerInjection}ml`,
+              display_value: `${shortName(drug.name, drug.concentration)} ${mlPerInjection}ml`,
               ml_amount: mlPerInjection,
               is_manual_override: false,
             })
@@ -87,7 +94,7 @@ export function generateCellsForDrug(
               cycle_drug_id: cycleDrug.id,
               week_number: weekN1,
               day_of_week: day,
-              display_value: `${drug.name} ${mlPerInjection}ml`,
+              display_value: `${shortName(drug.name, drug.concentration)} ${mlPerInjection}ml`,
               ml_amount: mlPerInjection,
               is_manual_override: false,
             })
@@ -108,7 +115,7 @@ export function generateCellsForDrug(
           cycle_drug_id: cycleDrug.id,
           week_number: week,
           day_of_week: day,
-          display_value: `${drug.name} ${cycleDrug.daily_dose}mg (${tabletsPerDay})`,
+          display_value: `${shortName(drug.name, drug.concentration)} ${cycleDrug.daily_dose}mg (${tabletsPerDay})`,
           ml_amount: null,
           is_manual_override: false,
         })

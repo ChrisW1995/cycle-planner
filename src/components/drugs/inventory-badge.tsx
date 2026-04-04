@@ -15,7 +15,7 @@ export function InventoryBadge({ count, unit, className }: InventoryBadgeProps) 
     <Badge
       variant="outline"
       className={cn(
-        'text-xs',
+        'text-xs cursor-pointer',
         status === 'empty' && 'border-red-500 text-red-500 bg-red-500/10',
         status === 'low' && 'border-amber-500 text-amber-500 bg-amber-500/10',
         status === 'ok' && 'border-green-500 text-green-500 bg-green-500/10',

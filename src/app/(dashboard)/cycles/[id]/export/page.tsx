@@ -2,11 +2,14 @@
 
 import { use, useMemo } from 'react'
 import { useCycle, useCycleCells, useUpdateCycleStatus } from '@/hooks/use-cycles'
+import { useDrugs } from '@/hooks/use-drugs'
 import { generateAllCells } from '@/lib/calculations/schedule-engine'
+import { calculateInventoryDeltas } from '@/lib/calculations/vial-calculator'
 import { exportScheduleToCSV, downloadCSV } from '@/lib/export/csv-export'
 import { exportScheduleToPDF } from '@/lib/export/pdf-export'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ArrowLeft, FileSpreadsheet, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -18,6 +21,7 @@ export default function ExportPage({ params }: { params: Promise<{ id: string }>
   const { id } = use(params)
   const { data: cycle, isLoading } = useCycle(id)
   const { data: savedCells } = useCycleCells(id)
+  const { data: allDrugs } = useDrugs()
   const updateStatus = useUpdateCycleStatus()
 
   // Generate display cells
@@ -41,6 +45,12 @@ export default function ExportPage({ params }: { params: Promise<{ id: string }>
       created_at: '',
     }))
   }, [cycle, savedCells, id])
+
+  // Drug inventory deltas
+  const inventoryDeltas = useMemo(() => {
+    if (!cycle?.cycle_drugs) return []
+    return calculateInventoryDeltas(cycle.cycle_drugs as any, allDrugs as any)
+  }, [cycle, allDrugs])
 
   // Cell map for preview
   const cellMap = useMemo(() => {
@@ -161,6 +171,44 @@ export default function ExportPage({ params }: { params: Promise<{ id: string }>
           </table>
         </CardContent>
       </Card>
+
+      {/* Drug Stats (simplified for export) */}
+      {inventoryDeltas.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">藥物用量統計</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>藥物</TableHead>
+                    <TableHead className="text-right">需求量</TableHead>
+                    <TableHead className="text-right">需求數</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {inventoryDeltas.map((d) => {
+                    const isOral = d.category === 'Oral' || d.category === 'PCT'
+                    return (
+                      <TableRow key={d.drug_id}>
+                        <TableCell className="font-medium">{d.drug_name}</TableCell>
+                        <TableCell className="text-right">
+                          {isOral ? `${d.needed_ml} 顆` : `${d.needed_ml} ml`}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {isOral ? `${d.needed_vials} 盒` : `${d.needed_vials} 瓶`}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

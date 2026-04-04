@@ -30,23 +30,36 @@ export default function DrugsPage() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [inventoryTarget, setInventoryTarget] = useState<Drug | null>(null)
   const [editCount, setEditCount] = useState('')
+  const [editBoxes, setEditBoxes] = useState('')
+  const [editLoose, setEditLoose] = useState('')
 
   const handleViewModeChange = (mode: 'grid' | 'list') => {
     setViewMode(mode)
     localStorage.setItem('drugs-view-mode', mode)
   }
 
+  const isOralTarget = inventoryTarget?.primary_category === 'Oral' || inventoryTarget?.primary_category === 'PCT'
+
   const handleInventoryUpdate = () => {
     if (!inventoryTarget) return
+    const count = isOralTarget
+      ? (parseInt(editBoxes) || 0) * (inventoryTarget.tabs_per_box || 100) + (parseInt(editLoose) || 0)
+      : parseInt(editCount) || 0
     updateDrug.mutate(
-      { id: inventoryTarget.id, inventory_count: parseInt(editCount) || 0 },
+      { id: inventoryTarget.id, inventory_count: count },
       { onSuccess: () => setInventoryTarget(null) }
     )
   }
 
   const openInventoryEdit = (drug: Drug) => {
     setInventoryTarget(drug)
-    setEditCount(drug.inventory_count.toString())
+    const isOral = drug.primary_category === 'Oral' || drug.primary_category === 'PCT'
+    if (isOral && drug.tabs_per_box) {
+      setEditBoxes(Math.floor(drug.inventory_count / drug.tabs_per_box).toString())
+      setEditLoose((drug.inventory_count % drug.tabs_per_box).toString())
+    } else {
+      setEditCount(drug.inventory_count.toString())
+    }
   }
 
   const filtered = drugs?.filter((d) =>
@@ -172,18 +185,35 @@ export default function DrugsPage() {
           <DialogHeader>
             <DialogTitle>更新庫存 — {inventoryTarget?.name}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="edit-inventory">
-              {inventoryTarget?.primary_category === 'Injectable' ? '庫存瓶數' : '庫存顆數'}
-            </Label>
-            <Input
-              id="edit-inventory"
-              type="number"
-              min="0"
-              value={editCount}
-              onChange={(e) => setEditCount(e.target.value)}
-            />
-          </div>
+          {isOralTarget ? (
+            <div className="space-y-2">
+              <Label>庫存數量</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Input type="number" min="0" value={editBoxes} onChange={(e) => setEditBoxes(e.target.value)} />
+                  <p className="text-xs text-muted-foreground mt-1">盒</p>
+                </div>
+                <div>
+                  <Input type="number" min="0" value={editLoose} onChange={(e) => setEditLoose(e.target.value)} />
+                  <p className="text-xs text-muted-foreground mt-1">顆（散裝）</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                共 {(parseInt(editBoxes) || 0) * (inventoryTarget?.tabs_per_box || 100) + (parseInt(editLoose) || 0)} 顆
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="edit-inventory">庫存瓶數</Label>
+              <Input
+                id="edit-inventory"
+                type="number"
+                min="0"
+                value={editCount}
+                onChange={(e) => setEditCount(e.target.value)}
+              />
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setInventoryTarget(null)}>取消</Button>
             <Button onClick={handleInventoryUpdate} disabled={updateDrug.isPending}>
