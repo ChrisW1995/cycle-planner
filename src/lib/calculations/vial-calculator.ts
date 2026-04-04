@@ -8,6 +8,7 @@ interface DrugWithInventory {
   ester_type: string | null
   template_id?: string | null
   inventory_count: number
+  tabs_per_box?: number | null
 }
 
 interface CycleDrugWithDrug extends Omit<CycleDrug, 'drug'> {
@@ -15,9 +16,10 @@ interface CycleDrugWithDrug extends Omit<CycleDrug, 'drug'> {
 }
 
 const ML_PER_VIAL = 10
+const DEFAULT_TABS_PER_BOX = 100
 
 /**
- * Calculate total ml needed for a drug across a cycle
+ * Calculate total ml needed for an injectable drug across a cycle
  */
 export function calculateTotalMl(cycleDrug: CycleDrugWithDrug): number {
   const { drug } = cycleDrug
@@ -39,10 +41,28 @@ export function calculateTotalMl(cycleDrug: CycleDrugWithDrug): number {
 }
 
 /**
- * Calculate vials needed for a drug
+ * Calculate total tablets needed for an oral/PCT drug across a cycle
+ */
+export function calculateTotalTablets(cycleDrug: CycleDrugWithDrug): number {
+  const { drug } = cycleDrug
+  if ((drug.primary_category !== 'Oral' && drug.primary_category !== 'PCT') || !cycleDrug.daily_dose) return 0
+  const weeks = cycleDrug.end_week - cycleDrug.start_week + 1
+  const tabletsPerDay = cycleDrug.daily_dose / drug.concentration
+  return Math.round(tabletsPerDay * 7 * weeks * 100) / 100
+}
+
+/**
+ * Calculate vials needed for an injectable drug
  */
 export function calculateVialsNeeded(totalMl: number): number {
   return Math.ceil(totalMl / ML_PER_VIAL)
+}
+
+/**
+ * Calculate boxes needed for an oral drug
+ */
+export function calculateBoxesNeeded(totalTablets: number, tabsPerBox: number | null | undefined): number {
+  return Math.ceil(totalTablets / (tabsPerBox || DEFAULT_TABS_PER_BOX))
 }
 
 /**
@@ -54,15 +74,18 @@ export function calculateInventoryDeltas(
   cycleDrugs: CycleDrugWithDrug[],
   allDrugs?: DrugWithInventory[]
 ): DrugInventoryDelta[] {
-  // Group by drug_id (same drug may appear in multiple cycle_drugs)
-  const drugMap = new Map<string, { totalMl: number; drug: DrugWithInventory }>()
+  const drugMap = new Map<string, { totalAmount: number; drug: DrugWithInventory }>()
 
   for (const cd of cycleDrugs) {
-    if (cd.drug.primary_category !== 'Injectable') continue
-
-    const existing = drugMap.get(cd.drug_id) || { totalMl: 0, drug: cd.drug }
-    existing.totalMl += calculateTotalMl(cd)
-    drugMap.set(cd.drug_id, existing)
+    if (cd.drug.primary_category === 'Injectable') {
+      const existing = drugMap.get(cd.drug_id) || { totalAmount: 0, drug: cd.drug }
+      existing.totalAmount += calculateTotalMl(cd)
+      drugMap.set(cd.drug_id, existing)
+    } else if (cd.drug.primary_category === 'Oral' || cd.drug.primary_category === 'PCT') {
+      const existing = drugMap.get(cd.drug_id) || { totalAmount: 0, drug: cd.drug }
+      existing.totalAmount += calculateTotalTablets(cd)
+      drugMap.set(cd.drug_id, existing)
+    }
   }
 
   // Build inventory pool: template_id:concentration → total inventory
@@ -75,20 +98,29 @@ export function calculateInventoryDeltas(
     }
   }
 
-  return Array.from(drugMap.entries()).map(([drugId, { totalMl, drug }]) => {
-    const vialsNeeded = calculateVialsNeeded(totalMl)
+  return Array.from(drugMap.entries()).map(([drugId, { totalAmount, drug }]) => {
+    const isOral = drug.primary_category === 'Oral' || drug.primary_category === 'PCT'
+    const neededUnits = isOral
+      ? calculateBoxesNeeded(totalAmount, drug.tabs_per_box)
+      : calculateVialsNeeded(totalAmount)
+
     // Use pooled inventory when available, otherwise individual
     const poolKey = drug.template_id ? `${drug.template_id}:${drug.concentration}` : null
     const inventory = (poolKey && poolMap.has(poolKey))
       ? poolMap.get(poolKey)!
       : drug.inventory_count
+
     return {
       drug_id: drugId,
       drug_name: drug.name,
-      needed_ml: Math.round(totalMl * 100) / 100,
-      needed_vials: vialsNeeded,
+      category: drug.primary_category as 'Injectable' | 'Oral' | 'PCT',
+      needed_ml: Math.round(totalAmount * 100) / 100,
+      needed_vials: neededUnits,
       current_inventory: inventory,
-      deficit: inventory - vialsNeeded,
+      tabs_per_box: drug.tabs_per_box ?? null,
+      deficit: isOral
+        ? inventory - Math.round(totalAmount)  // oral: total tablets vs total tablets
+        : inventory - neededUnits,              // injectable: vials vs vials
     }
   })
 }

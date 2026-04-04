@@ -79,6 +79,7 @@ export interface Drug {
   brand: string | null
   image_url: string | null
   inventory_count: number
+  tabs_per_box: number | null
   created_at: string
   updated_at: string
   // Joined
@@ -154,8 +155,10 @@ export interface ScheduleCellEntry {
 export interface DrugInventoryDelta {
   drug_id: string
   drug_name: string
-  needed_vials: number
-  needed_ml: number
-  current_inventory: number
+  category: 'Injectable' | 'Oral' | 'PCT'
+  needed_ml: number         // Injectable: ml; Oral/PCT: total tablets
+  needed_vials: number      // Injectable: vials; Oral/PCT: boxes
+  current_inventory: number // Injectable: vials; Oral/PCT: total tablets
+  tabs_per_box: number | null
   deficit: number // negative = shortage
 }

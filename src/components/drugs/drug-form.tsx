@@ -21,6 +21,7 @@ interface DrugFormProps {
     ester_type: EsterType | null
     brand: string | null
     inventory_count: number
+    tabs_per_box: number | null
     image_url: string | null
   }) => void
   loading?: boolean
@@ -42,6 +43,7 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
   const [esterType, setEsterType] = useState<EsterType | null>(initialData?.ester_type || null)
   const [imageUrl, setImageUrl] = useState<string | null>(initialData?.image_url || null)
   const [inventoryCount, setInventoryCount] = useState(initialData?.inventory_count?.toString() || '0')
+  const [tabsPerBox, setTabsPerBox] = useState(initialData?.tabs_per_box?.toString() || '100')
   const [mode, setMode] = useState<'template' | 'custom'>(initialData ? 'custom' : 'template')
 
   const handleTemplateSelect = (templateId: string) => {
@@ -66,6 +68,7 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
       ester_type: esterType,
       brand: brand.trim() || null,
       inventory_count: parseInt(inventoryCount) || 0,
+      tabs_per_box: (primaryCategory === 'Oral' || primaryCategory === 'PCT') ? (parseInt(tabsPerBox) || null) : null,
       image_url: imageUrl,
     })
   }
@@ -251,6 +254,20 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
                 <DrugImageUpload currentUrl={imageUrl} onUrlChange={setImageUrl} />
               </div>
 
+              {/* Tabs per box (oral only) */}
+              {(primaryCategory === 'Oral' || primaryCategory === 'PCT') && (
+                <div className="space-y-2">
+                  <Label htmlFor="tabsPerBox">每盒顆數</Label>
+                  <Input
+                    id="tabsPerBox"
+                    type="number"
+                    min="1"
+                    value={tabsPerBox}
+                    onChange={(e) => setTabsPerBox(e.target.value)}
+                  />
+                </div>
+              )}
+
               {/* Inventory */}
               <div className="space-y-2">
                 <Label htmlFor="inventory">庫存數量</Label>
@@ -262,7 +279,9 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
                   onChange={(e) => setInventoryCount(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  注射劑: 瓶數（每瓶 10ml）| 口服: 盒/板數
+                  {primaryCategory === 'Injectable'
+                    ? '瓶數（每瓶 10ml）'
+                    : '總顆數'}
                 </p>
               </div>
 
