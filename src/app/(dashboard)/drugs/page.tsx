@@ -235,16 +235,16 @@ function DrugTable({ drugs, isAdmin, onDelete, onInventoryEdit }: { drugs: Drug[
 
   return (
     <div className="rounded-md border">
-      <Table>
+      <Table className="table-fixed">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-12"></TableHead>
-            <TableHead>名稱</TableHead>
-            <TableHead>廠牌</TableHead>
-            <TableHead>分類</TableHead>
-            <TableHead>濃度</TableHead>
-            <TableHead>酯類</TableHead>
-            <TableHead>庫存</TableHead>
+            <TableHead className="w-14"></TableHead>
+            <TableHead className="w-[15%]">名稱</TableHead>
+            <TableHead className="w-[15%]">廠牌</TableHead>
+            <TableHead className="w-[18%]">分類</TableHead>
+            <TableHead className="w-[10%]">濃度</TableHead>
+            <TableHead className="w-[8%]">酯類</TableHead>
+            <TableHead className="w-[14%]">庫存</TableHead>
             {isAdmin && <TableHead className="w-20 text-center">操作</TableHead>}
           </TableRow>
         </TableHeader>

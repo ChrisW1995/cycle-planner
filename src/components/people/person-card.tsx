@@ -4,10 +4,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Pencil, Trash2, CalendarPlus, Bell } from 'lucide-react'
-import { statusColors, statusLabels } from '@/lib/constants/cycle-status'
+import { MoreHorizontal, Pencil, Trash2, CalendarPlus, Bell, CheckCircle2, XCircle } from 'lucide-react'
 import type { Person, CycleStatus } from '@/types'
 import Link from 'next/link'
+
+type PersonStatus = '待排課表' | '排制中' | '已完成' | null
+
+function getPersonStatus(person: Person): PersonStatus {
+  const activeCycle = person.cycles?.find((c) =>
+    c.status === 'Scheduled' || c.status === 'Planned'
+  )
+  if (activeCycle) return '排制中'
+  if (person.needs_cycle) return '待排課表'
+  const latestCompleted = person.cycles?.find((c) => c.status === 'Completed')
+  if (latestCompleted) return '已完成'
+  return null
+}
+
+const personStatusStyles: Record<string, string> = {
+  '待排課表': 'bg-amber-500/10 text-amber-500 border-amber-500/30',
+  '排制中': 'bg-blue-500/10 text-blue-500 border-blue-500/30',
+  '已完成': 'bg-green-500/10 text-green-500 border-green-500/30',
+}
 
 interface PersonCardProps {
   person: Person
@@ -16,16 +34,8 @@ interface PersonCardProps {
   onToggleNeedsCycle?: (id: string, needs: boolean) => void
 }
 
-function getLatestCycleStatus(person: Person): CycleStatus | null {
-  if (!person.cycles?.length) return null
-  const sorted = [...person.cycles].sort((a, b) =>
-    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  )
-  return sorted[0].status
-}
-
 export function PersonCard({ person, isAdmin, onDelete, onToggleNeedsCycle }: PersonCardProps) {
-  const latestStatus = getLatestCycleStatus(person)
+  const personStatus = getPersonStatus(person)
 
   return (
     <Link href={`/people/${person.id}`}>
@@ -34,15 +44,11 @@ export function PersonCard({ person, isAdmin, onDelete, onToggleNeedsCycle }: Pe
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base font-semibold">{person.nickname}</CardTitle>
-              {person.needs_cycle ? (
-                <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/30 text-xs">
-                  待排課表
+              {personStatus && (
+                <Badge variant="outline" className={`${personStatusStyles[personStatus]} text-xs`}>
+                  {personStatus}
                 </Badge>
-              ) : latestStatus ? (
-                <Badge variant="outline" className={`${statusColors[latestStatus]} text-xs`}>
-                  {statusLabels[latestStatus]}
-                </Badge>
-              ) : null}
+              )}
             </div>
             {isAdmin && (
               <DropdownMenu>
@@ -60,14 +66,35 @@ export function PersonCard({ person, isAdmin, onDelete, onToggleNeedsCycle }: Pe
                       <CalendarPlus className="mr-2 h-4 w-4" />
                       新建課表
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    onToggleNeedsCycle?.(person.id, !person.needs_cycle)
-                  }}>
-                    <Bell className="mr-2 h-4 w-4" />
-                    {person.needs_cycle ? '取消待排' : '標記待排'}
-                  </DropdownMenuItem>
+                  {personStatus === '排制中' && (
+                    <DropdownMenuItem onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      onToggleNeedsCycle?.(person.id, false)
+                    }}>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      排制完成
+                    </DropdownMenuItem>
+                  )}
+                  {personStatus !== '待排課表' ? (
+                    <DropdownMenuItem onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      onToggleNeedsCycle?.(person.id, true)
+                    }}>
+                      <Bell className="mr-2 h-4 w-4" />
+                      標記待排
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      onToggleNeedsCycle?.(person.id, false)
+                    }}>
+                      <XCircle className="mr-2 h-4 w-4" />
+                      取消待排
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-destructive"
@@ -92,16 +119,12 @@ export function PersonCard({ person, isAdmin, onDelete, onToggleNeedsCycle }: Pe
             {person.weight && <span>體重: {person.weight}kg</span>}
             {person.body_fat && <span>體脂: {person.body_fat}%</span>}
           </div>
-          {person.last_cycle_date && (
-            <p className="text-xs text-muted-foreground">
-              最近課表: {new Date(person.last_cycle_date).toLocaleDateString('zh-TW')}
-            </p>
-          )}
-          {person.notes && (
-            <p className="text-xs text-muted-foreground truncate">
-              備注: {person.notes}
-            </p>
-          )}
+          <p className="text-xs text-muted-foreground">
+            最近課表: {person.last_cycle_date ? new Date(person.last_cycle_date).toLocaleDateString('zh-TW') : '—'}
+          </p>
+          <p className="text-xs text-muted-foreground truncate">
+            備注: {person.notes || '—'}
+          </p>
           {person.cycle_goal_notes && (
             <p className="text-xs text-muted-foreground truncate">
               目標: {person.cycle_goal_notes}

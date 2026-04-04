@@ -10,11 +10,12 @@ const HEADER_FILL: ExcelJS.FillPattern = {
   fgColor: { argb: 'FF282828' },
 }
 const HEADER_FONT: Partial<ExcelJS.Font> = {
+  name: 'Calibri',
   bold: true,
   size: 10,
   color: { argb: 'FFFFFFFF' },
 }
-const BODY_FONT: Partial<ExcelJS.Font> = { size: 9 }
+const BODY_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 9 }
 const THIN_BORDER: Partial<ExcelJS.Borders> = {
   top: { style: 'thin' },
   left: { style: 'thin' },

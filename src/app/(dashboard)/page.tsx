@@ -107,18 +107,18 @@ export default function DashboardPage() {
               <CardContent>
                 <p className="text-3xl font-bold">{card.value}</p>
                 {card.title === '課表總數' && stats.totalCycles > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                  <div className="mt-3 flex flex-wrap gap-1.5">
                     {(['Scheduled', 'Planned', 'Completed'] as CycleStatus[]).map((s) => {
                       const count = stats.cyclesByStatus[s] || 0
                       if (count === 0) return null
+                      const colorClass =
+                        s === 'Scheduled' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                        s === 'Planned' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                        'bg-green-500/10 text-green-500 border-green-500/20'
                       return (
-                        <span key={s}>
-                          <span className={
-                            s === 'Scheduled' ? 'text-blue-500' :
-                            s === 'Planned' ? 'text-amber-500' :
-                            'text-green-500'
-                          }>{statusLabels[s]}</span>
-                          {' '}{count}
+                        <span key={s} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${colorClass}`}>
+                          {statusLabels[s]}
+                          <span className="font-semibold">{count}</span>
                         </span>
                       )
                     })}

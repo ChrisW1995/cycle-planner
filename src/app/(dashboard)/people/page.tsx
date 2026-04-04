@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Search, LayoutGrid, List } from 'lucide-react'
-import { statusColors, statusLabels } from '@/lib/constants/cycle-status'
 import type { CycleStatus } from '@/types'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -155,6 +154,8 @@ function PeopleContent() {
                 <TableHead>體重</TableHead>
                 <TableHead>體脂</TableHead>
                 <TableHead>狀態</TableHead>
+                <TableHead>最近課表</TableHead>
+                <TableHead>備注</TableHead>
                 <TableHead className="w-20">操作</TableHead>
               </TableRow>
             </TableHeader>
@@ -167,18 +168,28 @@ function PeopleContent() {
                   <TableCell>{person.weight ? `${person.weight}kg` : '—'}</TableCell>
                   <TableCell>{person.body_fat ? `${person.body_fat}%` : '—'}</TableCell>
                   <TableCell>
-                    {person.needs_cycle ? (
-                      <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/30 text-xs">待排課表</Badge>
-                    ) : (() => {
-                      const latest = person.cycles?.length
-                        ? [...person.cycles].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
-                        : null
-                      return latest ? (
-                        <Badge variant="outline" className={`${statusColors[latest.status as CycleStatus]} text-xs`}>
-                          {statusLabels[latest.status as CycleStatus]}
-                        </Badge>
-                      ) : <span className="text-muted-foreground">—</span>
+                    {(() => {
+                      const activeCycle = person.cycles?.find((c: any) =>
+                        c.status === 'Scheduled' || c.status === 'Planned'
+                      )
+                      if (activeCycle) return (
+                        <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/30 text-xs">排制中</Badge>
+                      )
+                      if (person.needs_cycle) return (
+                        <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30 text-xs">待排課表</Badge>
+                      )
+                      const completed = person.cycles?.find((c: any) => c.status === 'Completed')
+                      if (completed) return (
+                        <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30 text-xs">已完成</Badge>
+                      )
+                      return <span className="text-muted-foreground">—</span>
                     })()}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {person.last_cycle_date ? new Date(person.last_cycle_date).toLocaleDateString('zh-TW') : '—'}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate">
+                    {person.notes || '—'}
                   </TableCell>
                   <TableCell>
                     <Button variant="ghost" size="sm" render={<Link href={`/people/${person.id}`} />}>

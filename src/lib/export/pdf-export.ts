@@ -62,7 +62,7 @@ export function exportScheduleToPDF(
       lineWidth: 0.1,
     },
     columnStyles: {
-      0: { cellWidth: 20, halign: 'center', fontStyle: 'bold' },
+      0: { cellWidth: 20, halign: 'center', valign: 'middle', fontStyle: 'bold' },
       1: { cellWidth: 35 },
       2: { cellWidth: 35 },
       3: { cellWidth: 35 },

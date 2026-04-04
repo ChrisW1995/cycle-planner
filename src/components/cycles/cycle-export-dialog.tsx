@@ -75,7 +75,7 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[90vh] flex flex-col" showCloseButton={false}>
+      <DialogContent className="max-w-[95vw] lg:max-w-[85vw] xl:max-w-[1200px] max-h-[90vh] flex flex-col" showCloseButton={false}>
         <div className="flex items-start justify-between gap-4">
           <DialogHeader className="flex-1">
             <DialogTitle>
