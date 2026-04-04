@@ -198,7 +198,7 @@ export default function DrugsPage() {
                   <p className="text-xs text-muted-foreground mt-1">顆（散裝）</p>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground text-right">
                 共 {(parseInt(editBoxes) || 0) * (inventoryTarget?.tabs_per_box || 100) + (parseInt(editLoose) || 0)} 顆
               </p>
             </div>
