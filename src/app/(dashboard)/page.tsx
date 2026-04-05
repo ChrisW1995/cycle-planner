@@ -94,10 +94,10 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">總覽</h1>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
         {cards.map((card) => (
-          <Link key={card.title} href={card.href}>
-            <Card className="transition-colors hover:bg-accent/50">
+          <Link key={card.title} href={card.href} className="flex">
+            <Card className="transition-colors hover:bg-accent/50 flex-1 flex flex-col">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {card.title}
@@ -106,24 +106,25 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold">{card.value}</p>
-                {card.title === '課表總數' && stats.totalCycles > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {(['Scheduled', 'Planned', 'Completed'] as CycleStatus[]).map((s) => {
-                      const count = stats.cyclesByStatus[s] || 0
-                      if (count === 0) return null
-                      const colorClass =
-                        s === 'Scheduled' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
-                        s === 'Planned' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
-                        'bg-green-500/10 text-green-500 border-green-500/20'
-                      return (
-                        <span key={s} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${colorClass}`}>
-                          {statusLabels[s]}
-                          <span className="font-semibold">{count}</span>
+                {card.title === '課表總數' && stats.totalCycles > 0 && (() => {
+                  const inProgress = (stats.cyclesByStatus['Scheduled'] || 0) + (stats.cyclesByStatus['Planned'] || 0)
+                  const completed = stats.cyclesByStatus['Completed'] || 0
+                  const items = [
+                    { label: '排制中', count: inProgress, color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
+                    { label: '已完成', count: completed, color: 'bg-green-500/10 text-green-500 border-green-500/20' },
+                  ].filter(i => i.count > 0)
+                  if (items.length === 0) return null
+                  return (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {items.map((item) => (
+                        <span key={item.label} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${item.color}`}>
+                          {item.label}
+                          <span className="font-semibold">{item.count}</span>
                         </span>
-                      )
-                    })}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )
+                })()}
               </CardContent>
             </Card>
           </Link>

@@ -67,16 +67,36 @@ export function PersonCard({ person, isAdmin, onDelete, onToggleNeedsCycle }: Pe
                       新建課表
                   </DropdownMenuItem>
                   {personStatus === '排制中' && (
+                    <>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        onToggleNeedsCycle?.(person.id, false)
+                      }}>
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        排制完成
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        onToggleNeedsCycle?.(person.id, false)
+                      }}>
+                        <XCircle className="mr-2 h-4 w-4" />
+                        取消排制
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {personStatus === '待排課表' && (
                     <DropdownMenuItem onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
                       onToggleNeedsCycle?.(person.id, false)
                     }}>
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                      排制完成
+                      <XCircle className="mr-2 h-4 w-4" />
+                      取消待排
                     </DropdownMenuItem>
                   )}
-                  {personStatus !== '待排課表' ? (
+                  {personStatus === '已完成' && (
                     <DropdownMenuItem onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
@@ -85,14 +105,15 @@ export function PersonCard({ person, isAdmin, onDelete, onToggleNeedsCycle }: Pe
                       <Bell className="mr-2 h-4 w-4" />
                       標記待排
                     </DropdownMenuItem>
-                  ) : (
+                  )}
+                  {!personStatus && (
                     <DropdownMenuItem onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
-                      onToggleNeedsCycle?.(person.id, false)
+                      onToggleNeedsCycle?.(person.id, true)
                     }}>
-                      <XCircle className="mr-2 h-4 w-4" />
-                      取消待排
+                      <Bell className="mr-2 h-4 w-4" />
+                      標記待排
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
@@ -125,11 +146,6 @@ export function PersonCard({ person, isAdmin, onDelete, onToggleNeedsCycle }: Pe
           <p className="text-xs text-muted-foreground truncate">
             備注: {person.notes || '—'}
           </p>
-          {person.cycle_goal_notes && (
-            <p className="text-xs text-muted-foreground truncate">
-              目標: {person.cycle_goal_notes}
-            </p>
-          )}
         </CardContent>
       </Card>
     </Link>

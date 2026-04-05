@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCreateCycle } from '@/hooks/use-cycles'
 import { usePeople } from '@/hooks/use-people'
@@ -23,6 +23,18 @@ function NewCycleForm() {
   const [totalWeeks, setTotalWeeks] = useState('12')
   const [startDate, setStartDate] = useState('')
   const [notes, setNotes] = useState('')
+  const [notesInitialized, setNotesInitialized] = useState(false)
+
+  // Auto-fill notes from person's cycle_goal_notes when preselected
+  useEffect(() => {
+    if (!notesInitialized && preselectedPersonId && people) {
+      const person = people.find(p => p.id === preselectedPersonId)
+      if (person?.cycle_goal_notes) {
+        setNotes(person.cycle_goal_notes)
+      }
+      setNotesInitialized(true)
+    }
+  }, [preselectedPersonId, people, notesInitialized])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,7 +43,7 @@ function NewCycleForm() {
         person_id: personId,
         name: name || null,
         total_weeks: parseInt(totalWeeks),
-        status: 'Scheduled',
+        status: 'Planned',
         start_date: startDate || null,
         notes: notes || null,
       },
@@ -109,7 +121,7 @@ function NewCycleForm() {
                 id="notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="課表目標、注意事項..."
+                placeholder="課表備註 / 目標..."
                 rows={3}
               />
             </div>

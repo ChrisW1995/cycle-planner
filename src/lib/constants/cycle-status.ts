@@ -8,8 +8,8 @@ export const statusColors: Record<CycleStatus, string> = {
 }
 
 export const statusLabels: Record<CycleStatus, string> = {
-  Scheduled: '已預定',
-  Planned: '已排制',
+  Scheduled: '排制中',
+  Planned: '排制中',
   Completed: '已完成',
   Archived: '已封存',
 }

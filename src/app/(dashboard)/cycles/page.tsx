@@ -75,7 +75,7 @@ export default function CyclesPage() {
                           <Pencil className="h-4 w-4" />
                         </Button>
                       )}
-                      {isAdmin && cycle.status === 'Scheduled' && (
+                      {isAdmin && (cycle.status === 'Scheduled' || cycle.status === 'Planned') && (
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" aria-label="刪除" onClick={() => setDeleteTarget(cycle.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>

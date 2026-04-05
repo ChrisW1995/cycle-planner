@@ -183,8 +183,7 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Scheduled">已預定</SelectItem>
-                  <SelectItem value="Planned">已排制</SelectItem>
+                  <SelectItem value="Planned">排制中</SelectItem>
                   <SelectItem value="Completed">已完成</SelectItem>
                 </SelectContent>
               </Select>
@@ -198,7 +197,7 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
               <Download className="mr-2 h-4 w-4" />
               匯出
           </Button>
-          {isAdmin && (cycle.status === 'Scheduled' || cycle.status === 'Completed') && (
+          {isAdmin && cycle.status !== 'Archived' && (
             <DropdownMenu>
               <DropdownMenuTrigger render={<Button variant="outline" size="icon" />}>
                 <MoreHorizontal className="h-4 w-4" />
@@ -210,7 +209,7 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
                     封存課表
                   </DropdownMenuItem>
                 )}
-                {cycle.status === 'Scheduled' && (
+                {(cycle.status === 'Scheduled' || cycle.status === 'Planned') && (
                   <DropdownMenuItem
                     className="text-destructive"
                     onClick={() => setDeleteDialogOpen(true)}
@@ -235,7 +234,7 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
               updateCycle.mutate({ id, notes: localNotes || null })
             }
           }}
-          placeholder="課表備注..."
+          placeholder="課表備註 / 目標..."
           rows={2}
           className="text-sm"
         />
