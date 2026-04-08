@@ -14,9 +14,9 @@ const HEADER_FONT: Partial<ExcelJS.Font> = {
   size: 10,
   color: { argb: 'FFFFFFFF' },
 }
-const NAME_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 9, bold: true, color: { argb: 'FF1A1A1A' } }
-const DOSE_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 9, color: { argb: 'FF888888' } }
-const BODY_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 9 }
+const NAME_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF1A1A1A' } }
+const DOSE_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 11, color: { argb: 'FF888888' } }
+const BODY_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 11 }
 const THIN_BORDER: Partial<ExcelJS.Borders> = {
   top: { style: 'thin' },
   left: { style: 'thin' },
@@ -78,8 +78,7 @@ export function exportScheduleToXLSX(
     cell.border = THIN_BORDER
   })
 
-  // Per-entry row height (approx 14pt per line)
-  const LINE_HEIGHT = 14
+  const LINE_HEIGHT = 16
 
   // Data rows
   for (let week = 1; week <= totalWeeks; week++) {
@@ -99,8 +98,7 @@ export function exportScheduleToXLSX(
       cellRef.border = THIN_BORDER
     }
 
-    // Height: entries + 1 extra line of padding
-    row.height = Math.max(LINE_HEIGHT * (maxEntries + 1), LINE_HEIGHT * 2)
+    row.height = Math.max(LINE_HEIGHT * maxEntries + 4, LINE_HEIGHT + 4)
 
     // Week column
     const weekCell = row.getCell(1)
