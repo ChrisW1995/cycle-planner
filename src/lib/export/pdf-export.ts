@@ -82,11 +82,12 @@ export async function exportScheduleToPDF(
       font: fontName,
     },
     bodyStyles: {
-      fontSize: 7,
+      fontSize: 8,
       cellPadding: 2,
       valign: 'top',
-      lineWidth: 0.1,
+      lineWidth: 0.2,
       font: fontName,
+      textColor: [30, 30, 30],
     },
     columnStyles: {
       0: { cellWidth: 20, halign: 'center', valign: 'middle', fontStyle: 'bold' },
