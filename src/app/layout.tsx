@@ -18,6 +18,10 @@ const notoSansTC = Noto_Sans_TC({
 export const metadata: Metadata = {
   title: "Cycle Planner",
   description: "藥物週期排程管理工具",
+  icons: {
+    icon: '/icons/icon-512.png',
+    apple: '/icons/cycle-planner-iOS-Dark-1024x1024@1x.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
