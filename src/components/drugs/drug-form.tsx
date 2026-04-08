@@ -321,7 +321,9 @@ export function DrugForm({ initialData, onSubmit, loading }: DrugFormProps) {
                     value={inventoryCount}
                     onChange={(e) => setInventoryCount(e.target.value)}
                   />
-                  <p className="text-xs text-muted-foreground">瓶數（每瓶 10ml）</p>
+                  <p className="text-xs text-muted-foreground">
+                    {esterType === 'E3D' ? '瓶/劑數' : '瓶數（每瓶 10ml）'}
+                  </p>
                 </div>
               )}
 

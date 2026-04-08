@@ -161,6 +161,7 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
                   <TableBody>
                     {inventoryDeltas.map((d) => {
                       const isOral = d.category === 'Oral' || d.category === 'PCT'
+                      const unitLabel = isOral ? '盒' : d.ester_type === 'E3D' ? '瓶/劑' : '瓶'
                       return (
                         <TableRow key={d.drug_id}>
                           <TableCell className="font-medium">{d.drug_name}</TableCell>
@@ -168,7 +169,7 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
                             {isOral ? `${Math.round(d.needed_ml)} 顆` : `${d.needed_ml} ml`}
                           </TableCell>
                           <TableCell className="text-right">
-                            {isOral ? formatOralInventory(Math.round(d.needed_ml), d.tabs_per_box) : `${d.needed_vials} 瓶`}
+                            {isOral ? formatOralInventory(Math.round(d.needed_ml), d.tabs_per_box) : `${d.needed_vials} ${unitLabel}`}
                           </TableCell>
                         </TableRow>
                       )

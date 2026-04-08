@@ -160,6 +160,7 @@ export interface DrugInventoryDelta {
   drug_id: string
   drug_name: string
   category: 'Injectable' | 'Oral' | 'PCT'
+  ester_type: EsterType | null
   needed_ml: number         // Injectable: ml; Oral/PCT: total tablets
   needed_vials: number      // Injectable: vials; Oral/PCT: boxes
   current_inventory: number // Injectable: vials; Oral/PCT: total tablets

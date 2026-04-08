@@ -103,9 +103,14 @@ export function calculateInventoryDeltas(
 
   return Array.from(drugMap.entries()).map(([drugId, { totalAmount, drug }]) => {
     const isOral = drug.primary_category === 'Oral' || drug.primary_category === 'PCT'
+    const isE3D = drug.ester_type === 'E3D'
+
+    // E3D: inventory_count is vials/doses directly, no ml→vial conversion
     const neededUnits = isOral
       ? calculateBoxesNeeded(totalAmount, drug.tabs_per_box)
-      : calculateVialsNeeded(totalAmount)
+      : isE3D
+        ? Math.ceil(totalAmount)  // totalAmount = total ml, treat inventory as vials
+        : calculateVialsNeeded(totalAmount)
 
     // Use pooled inventory when available, otherwise individual
     const poolKey = drug.template_id ? `${drug.template_id}:${drug.concentration}` : null
@@ -117,6 +122,7 @@ export function calculateInventoryDeltas(
       drug_id: drugId,
       drug_name: drug.name,
       category: drug.primary_category as 'Injectable' | 'Oral' | 'PCT',
+      ester_type: (drug.ester_type as any) || null,
       needed_ml: Math.round(totalAmount * 100) / 100,
       needed_vials: neededUnits,
       current_inventory: inventory,

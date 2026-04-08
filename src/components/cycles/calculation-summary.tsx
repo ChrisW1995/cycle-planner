@@ -33,6 +33,8 @@ export function CalculationSummary({ deltas }: CalculationSummaryProps) {
             <TableBody>
               {deltas.map((d) => {
                 const isOral = d.category === 'Oral' || d.category === 'PCT'
+                const isE3D = d.ester_type === 'E3D'
+                const unitLabel = isOral ? '盒' : isE3D ? '瓶/劑' : '瓶'
                 return (
                   <TableRow key={d.drug_id}>
                     <TableCell className="font-medium">{d.drug_name}</TableCell>
@@ -40,12 +42,12 @@ export function CalculationSummary({ deltas }: CalculationSummaryProps) {
                       {isOral ? `${Math.round(d.needed_ml)} 顆` : `${d.needed_ml} ml`}
                     </TableCell>
                     <TableCell className="text-right">
-                      {isOral ? formatOralInventory(Math.round(d.needed_ml), d.tabs_per_box) : `${d.needed_vials} 瓶`}
+                      {isOral ? formatOralInventory(Math.round(d.needed_ml), d.tabs_per_box) : `${d.needed_vials} ${unitLabel}`}
                     </TableCell>
                     <TableCell className="text-right">
                       {isOral
                         ? `${formatOralInventory(d.current_inventory, d.tabs_per_box)}（${d.current_inventory}顆）`
-                        : `${d.current_inventory} 瓶`}
+                        : `${d.current_inventory} ${unitLabel}`}
                     </TableCell>
                     <TableCell className="text-right">
                       <Badge
