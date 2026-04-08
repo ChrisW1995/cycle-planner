@@ -284,7 +284,7 @@ function ScheduleCell({
       {hasSkipped && (
         <TriangleAlert className="absolute top-1 right-1 h-3 w-3 text-yellow-500/50" />
       )}
-      <div className="space-y-0.5">
+      <div className="space-y-1">
         {cells.map((cell, i) => (
           <div
             key={cell.id || `${cellKey}-${i}`}

@@ -63,12 +63,7 @@ export async function exportScheduleToPDF(
     const row = [`Week ${week}`]
     for (let day = 1; day <= 7; day++) {
       const entries = cellMap.get(`${week}-${day}`) || []
-      // Format each entry as "Name\n  dose" for clearer PDF layout
-      const formatted = entries.map((v) => {
-        const match = v.match(/^(.+?)\s+(\d[\d.]*\s*(?:ml|mg|IU|mcg).*)$/i)
-        return match ? `${match[1]}\n  ${match[2]}` : v
-      })
-      row.push(formatted.join('\n'))
+      row.push(entries.join('\n'))
     }
     body.push(row)
   }
@@ -88,11 +83,12 @@ export async function exportScheduleToPDF(
     },
     bodyStyles: {
       fontSize: 8,
+      fontStyle: 'bold',
       cellPadding: 2,
       valign: 'top',
       lineWidth: 0.2,
       font: fontName,
-      textColor: [30, 30, 30],
+      textColor: [20, 20, 20],
     },
     columnStyles: {
       0: { cellWidth: 20, halign: 'center', valign: 'middle', fontStyle: 'bold' },
@@ -158,8 +154,10 @@ export async function exportScheduleToPDF(
       },
       bodyStyles: {
         fontSize: 8,
+        fontStyle: 'bold',
         cellPadding: 2,
         font: fontName,
+        textColor: [20, 20, 20],
       },
       columnStyles: {
         0: { cellWidth: 40 },
