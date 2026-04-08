@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useDrugs, useDeleteDrug, useUpdateDrug } from '@/hooks/use-drugs'
 import { useGlobalInventoryDeficits } from '@/hooks/use-inventory-deficits'
 import { useAuth } from '@/hooks/use-auth'
@@ -29,18 +29,17 @@ export default function DrugsPage() {
     return 'grid'
   })
   const [search, setSearch] = useState('')
-  const [lowStockThreshold, setLowStockThreshold] = useState(1)
+  const [lowStockThreshold, setLowStockThreshold] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return parseInt(localStorage.getItem('lowStockThreshold') || '1') || 1
+    }
+    return 1
+  })
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [inventoryTarget, setInventoryTarget] = useState<Drug | null>(null)
   const [editCount, setEditCount] = useState('')
   const [editBoxes, setEditBoxes] = useState('')
   const [editLoose, setEditLoose] = useState('')
-
-  // Load threshold from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('lowStockThreshold')
-    if (saved) setLowStockThreshold(parseInt(saved) || 1)
-  }, [])
 
   const handleThresholdChange = (value: number) => {
     const v = Math.max(0, value)
