@@ -26,6 +26,12 @@ async function loadCJKFont(doc: jsPDF): Promise<boolean> {
   }
 }
 
+// Split "DrugName 0.8ml" or "DrugName 30mg (3)" into [name, dose]
+function splitDrugEntry(v: string): [string, string] | null {
+  const match = v.match(/^(.+?)\s+(\d[\d.]*\s*(?:ml|mg|IU|mcg).*)$/i)
+  return match ? [match[1], match[2]] : null
+}
+
 export async function exportScheduleToPDF(
   title: string,
   totalWeeks: number,
@@ -42,7 +48,7 @@ export async function exportScheduleToPDF(
   const hasCJK = await loadCJKFont(doc)
   const fontName = hasCJK ? 'NotoSansTC' : 'helvetica'
 
-  // Build cell map
+  // Build cell map: entries per (week, day)
   const cellMap = new Map<string, string[]>()
   for (const cell of cells) {
     if (cell.is_skipped) continue
@@ -51,22 +57,31 @@ export async function exportScheduleToPDF(
     if (cell.display_value) cellMap.get(key)!.push(cell.display_value)
   }
 
+  // Title
   doc.setFont(fontName)
   doc.setFontSize(16)
   doc.text(title, 14, 15)
 
-  // Schedule table
+  // Schedule table — store real entries separately, pass placeholder text for row height calculation
   const headers = ['Week', ...getDayLabels(startDate)]
   const body: string[][] = []
+  const entriesMap = new Map<string, string[]>() // "row-col" → entries
 
   for (let week = 1; week <= totalWeeks; week++) {
     const row = [`Week ${week}`]
     for (let day = 1; day <= 7; day++) {
       const entries = cellMap.get(`${week}-${day}`) || []
-      row.push(entries.join('\n'))
+      entriesMap.set(`${week - 1}-${day}`, entries)
+      // Use placeholder lines for autoTable to calculate correct row height
+      // Each entry = one line of spaces to reserve vertical space
+      row.push(entries.map(() => ' ').join('\n'))
     }
     body.push(row)
   }
+
+  const fontSize = 8
+  const lineHeight = fontSize * 0.4 // mm per line (approx)
+  const padding = 2
 
   autoTable(doc, {
     startY: 22,
@@ -82,16 +97,15 @@ export async function exportScheduleToPDF(
       font: fontName,
     },
     bodyStyles: {
-      fontSize: 8,
-      fontStyle: 'bold',
-      cellPadding: 2,
+      fontSize,
+      cellPadding: padding,
       valign: 'top',
       lineWidth: 0.2,
       font: fontName,
-      textColor: [20, 20, 20],
+      textColor: [255, 255, 255], // white text (invisible on white bg) — we draw manually
     },
     columnStyles: {
-      0: { cellWidth: 20, halign: 'center', valign: 'middle', fontStyle: 'bold' },
+      0: { cellWidth: 20, halign: 'center', valign: 'middle', fontStyle: 'bold', textColor: [20, 20, 20] },
       1: { cellWidth: 35 },
       2: { cellWidth: 35 },
       3: { cellWidth: 35 },
@@ -106,6 +120,36 @@ export async function exportScheduleToPDF(
       font: fontName,
     },
     margin: { left: 10, right: 10 },
+    didDrawCell: (data) => {
+      // Only custom-draw body cells for day columns (not Week column)
+      if (data.section !== 'body' || data.column.index === 0) return
+
+      const entries = entriesMap.get(`${data.row.index}-${data.column.index}`) || []
+      if (entries.length === 0) return
+
+      const x = data.cell.x + padding
+      const xRight = data.cell.x + data.cell.width - padding
+      let y = data.cell.y + padding + fontSize * 0.35 // baseline offset
+
+      doc.setFont(fontName, 'normal')
+      doc.setFontSize(fontSize)
+
+      for (const entry of entries) {
+        const parts = splitDrugEntry(entry)
+        if (parts) {
+          // Drug name — dark, left aligned
+          doc.setTextColor(20, 20, 20)
+          doc.text(parts[0], x, y)
+          // Dose — light, right aligned
+          doc.setTextColor(140, 140, 140)
+          doc.text(parts[1], xRight, y, { align: 'right' })
+        } else {
+          doc.setTextColor(20, 20, 20)
+          doc.text(entry, x, y)
+        }
+        y += lineHeight + fontSize * 0.5
+      }
+    },
     didDrawPage: () => {
       doc.setFont(fontName)
       doc.setFontSize(7)
@@ -154,14 +198,13 @@ export async function exportScheduleToPDF(
       },
       bodyStyles: {
         fontSize: 8,
-        fontStyle: 'bold',
         cellPadding: 2,
         font: fontName,
         textColor: [20, 20, 20],
       },
       columnStyles: {
         0: { cellWidth: 40 },
-        1: { cellWidth: 60, halign: 'right' },
+        1: { cellWidth: 60, halign: 'right', textColor: [100, 100, 100] },
       },
       styles: {
         font: fontName,
