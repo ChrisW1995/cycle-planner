@@ -7,6 +7,7 @@ import {
 } from '@/lib/data/drug-guide'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { InfoTooltip } from '@/components/guide/info-tooltip'
 import {
   Table,
   TableBody,
@@ -22,8 +23,13 @@ export function PCTProtocolsTab() {
       <div className="space-y-6 pr-4">
         {/* PCT Timing */}
         <div className="space-y-2">
-          <h3 className="font-medium">PCT 開始時機（最後一針後等待時間）</h3>
-          <p className="text-xs text-muted-foreground">經驗法則：最後一針後等待約 5 個半衰期再開始 PCT</p>
+          <h3 className="font-medium">
+            PCT 開始時機（最後一針後等待時間）
+            <InfoTooltip
+              content="經驗法則：最後一針後等待約 5 個半衰期，讓血藥濃度降至足夠低再開始 SERM，避免外源荷爾蒙與 SERM 競爭。"
+              source="藥理動力學基本原則"
+            />
+          </h3>
           <Table>
             <TableHeader>
               <TableRow>
@@ -44,10 +50,16 @@ export function PCTProtocolsTab() {
 
         {/* PCT Protocols */}
         {pctProtocols.map((protocol, i) => (
-          <div key={i} className="rounded-lg border border-border p-4 space-y-3">
+          <div key={i} className={`rounded-lg border p-4 space-y-3 ${protocol.recommended ? 'border-primary/30 bg-primary/5' : 'border-border'}`}>
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-medium">{protocol.name}</h3>
-              <Badge variant="secondary">{protocol.suitability}</Badge>
+              <h3 className="font-medium">
+                {protocol.name}
+                {protocol.tooltip && (
+                  <InfoTooltip content={protocol.tooltip} source={protocol.source} />
+                )}
+              </h3>
+              <Badge variant={protocol.recommended ? 'default' : 'secondary'}>{protocol.suitability}</Badge>
+              {protocol.recommended && <Badge variant="outline" className="border-green-500 text-green-500">推薦</Badge>}
             </div>
             <Table>
               <TableHeader>
@@ -91,10 +103,17 @@ export function PCTProtocolsTab() {
             </ul>
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium text-destructive">警告：</p>
-            <ul className="list-disc list-inside text-sm text-destructive/80 space-y-0.5">
+            <p className="text-sm font-medium text-destructive">注意事項：</p>
+            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
               {hcgOnCycleProtocol.warnings.map((w, i) => (
-                <li key={i}>{w}</li>
+                <li key={i} className="leading-relaxed">
+                  {typeof w === 'string' ? w : (
+                    <span>
+                      {w.text}
+                      {w.tooltip && <InfoTooltip content={w.tooltip} source={w.source} />}
+                    </span>
+                  )}
+                </li>
               ))}
             </ul>
           </div>

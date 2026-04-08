@@ -3,6 +3,7 @@
 import { halfLifeTable } from '@/lib/data/drug-guide'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { InfoTooltip } from '@/components/guide/info-tooltip'
 import {
   Table,
   TableBody,
@@ -36,7 +37,10 @@ export function HalfLivesTab() {
                   <TableHead>化合物</TableHead>
                   <TableHead>半衰期</TableHead>
                   <TableHead>建議頻率</TableHead>
-                  <TableHead>PCT 等待</TableHead>
+                  <TableHead>
+                    PCT 等待
+                    <InfoTooltip content="最後一針後至開始 PCT 的建議等待時間。基於「5 個半衰期」原則 — 此時血藥濃度已降至初始值的 ~3%，不再顯著干擾 SERM 對垂體的作用。" source="藥理動力學基本原則" />
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

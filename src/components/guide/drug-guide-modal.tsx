@@ -26,11 +26,11 @@ interface DrugGuideModalProps {
 const tabs = [
   { value: 'cycle-examples', label: '週期範例' },
   { value: 'dosage-guide', label: '劑量指南' },
+  { value: 'drug-stacking', label: '藥物搭配' },
   { value: 'pct-protocols', label: 'PCT 療程' },
   { value: 'estrogen-mgmt', label: '雌激素管理' },
   { value: 'prolactin-mgmt', label: '泌乳素管理' },
   { value: 'clen-t3', label: 'Clen / T3' },
-  { value: 'drug-stacking', label: '藥物搭配' },
   { value: 'cycle-support', label: '週期輔助' },
   { value: 'half-lives', label: '半衰期' },
 ] as const
@@ -63,6 +63,9 @@ export function DrugGuideModal({ open, onOpenChange }: DrugGuideModalProps) {
           <TabsContent value="dosage-guide">
             <DosageGuideTab />
           </TabsContent>
+          <TabsContent value="drug-stacking">
+            <DrugStackingTab />
+          </TabsContent>
           <TabsContent value="pct-protocols">
             <PCTProtocolsTab />
           </TabsContent>
@@ -74,9 +77,6 @@ export function DrugGuideModal({ open, onOpenChange }: DrugGuideModalProps) {
           </TabsContent>
           <TabsContent value="clen-t3">
             <ClenT3Tab />
-          </TabsContent>
-          <TabsContent value="drug-stacking">
-            <DrugStackingTab />
           </TabsContent>
           <TabsContent value="cycle-support">
             <CycleSupportTab />

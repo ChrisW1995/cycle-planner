@@ -9,6 +9,7 @@ import {
 } from '@/lib/data/drug-guide'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { InfoTooltip } from '@/components/guide/info-tooltip'
 import {
   Table,
   TableBody,
@@ -17,6 +18,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="border-b border-border pb-2 mb-4">
+      <h2 className="text-base font-semibold">{children}</h2>
+    </div>
+  )
+}
 
 export function DrugStackingTab() {
   const grouped = {
@@ -28,6 +37,10 @@ export function DrugStackingTab() {
   return (
     <ScrollArea className="h-[60vh]">
       <div className="space-y-6 pr-4">
+
+        {/* ===== 區段 1: 基本原則 ===== */}
+        <SectionTitle>基本原則</SectionTitle>
+
         {/* Test base rule */}
         <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-2">
           <h3 className="font-medium">{testBaseRule.title}</h3>
@@ -46,43 +59,92 @@ export function DrugStackingTab() {
           </ul>
         </div>
 
-        {/* Multi-compound stacks */}
+        {/* ===== 區段 2: 雙重搭配指南 ===== */}
+        <SectionTitle>雙重搭配指南</SectionTitle>
+
+        {/* Danger */}
         <div className="space-y-3">
           <h3 className="font-medium flex items-center gap-2">
-            <Badge variant="secondary">三重化合物範例</Badge>
+            <Badge variant="destructive">禁止搭配</Badge>
           </h3>
-          {multiCompoundStacks.map((stack, i) => (
-            <div key={i} className="rounded-lg border border-border p-4 space-y-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h4 className="font-medium text-sm">{stack.name}</h4>
+          <div className="space-y-2">
+            {grouped.danger.map((item, i) => (
+              <div key={i} className="rounded-md border border-destructive/30 bg-destructive/5 p-3 space-y-1">
+                <p className="font-medium text-sm">
+                  {item.combo}
+                  {item.tooltip && <InfoTooltip content={item.tooltip} source={item.source} />}
+                </p>
+                <p className="text-sm text-muted-foreground">{item.reason}</p>
               </div>
-              <p className="text-sm text-muted-foreground">{stack.goal}</p>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>化合物</TableHead>
-                    <TableHead>劑量範圍</TableHead>
-                    <TableHead>備註</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {stack.compounds.map((c, j) => (
-                    <TableRow key={j}>
-                      <TableCell className="font-medium">{c.name}</TableCell>
-                      <TableCell>{c.dosageRange}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{c.notes}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-0.5">
-                {stack.keyPoints.map((p, k) => (
-                  <li key={k}>{p}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+
+        {/* Caution */}
+        <div className="space-y-3">
+          <h3 className="font-medium flex items-center gap-2">
+            <Badge variant="outline" className="border-yellow-500 text-yellow-500">謹慎使用</Badge>
+          </h3>
+          <div className="space-y-2">
+            {grouped.caution.map((item, i) => (
+              <div key={i} className="rounded-md border border-yellow-500/20 bg-yellow-500/5 p-3 space-y-1">
+                <p className="font-medium text-sm">
+                  {item.combo}
+                  {item.tooltip && <InfoTooltip content={item.tooltip} source={item.source} />}
+                </p>
+                <p className="text-sm text-muted-foreground">{item.reason}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Safe */}
+        <div className="space-y-3">
+          <h3 className="font-medium flex items-center gap-2">
+            <Badge variant="outline" className="border-green-500 text-green-500">常見安全搭配</Badge>
+          </h3>
+          <div className="space-y-2">
+            {grouped.safe.map((item, i) => (
+              <div key={i} className="rounded-md border border-green-500/20 bg-green-500/5 p-3 space-y-1">
+                <p className="font-medium text-sm">{item.combo}</p>
+                <p className="text-sm text-muted-foreground">{item.reason}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ===== 區段 3: 三重化合物搭配 ===== */}
+        <SectionTitle>三重化合物搭配</SectionTitle>
+
+        {multiCompoundStacks.map((stack, i) => (
+          <div key={i} className="rounded-lg border border-border p-4 space-y-3">
+            <h4 className="font-medium text-sm">{stack.name}</h4>
+            <p className="text-sm text-muted-foreground">{stack.goal}</p>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>化合物</TableHead>
+                  <TableHead>劑量範圍</TableHead>
+                  <TableHead>備註</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stack.compounds.map((c, j) => (
+                  <TableRow key={j}>
+                    <TableCell className="font-medium">{c.name}</TableCell>
+                    <TableCell>{c.dosageRange}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{c.notes}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-0.5">
+              {stack.keyPoints.map((p, k) => (
+                <li key={k}>{p}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
 
         {/* Test/Tren ratio debate */}
         <div className="rounded-lg border border-border p-4 space-y-3">
@@ -123,50 +185,6 @@ export function DrugStackingTab() {
           <p className="text-sm">{testTrenRatioDebate.recommendation}</p>
         </div>
 
-        {/* Danger */}
-        <div className="space-y-3">
-          <h3 className="font-medium flex items-center gap-2">
-            <Badge variant="destructive">禁止搭配</Badge>
-          </h3>
-          <div className="space-y-2">
-            {grouped.danger.map((item, i) => (
-              <div key={i} className="rounded-md border border-destructive/30 bg-destructive/5 p-3 space-y-1">
-                <p className="font-medium text-sm">{item.combo}</p>
-                <p className="text-sm text-muted-foreground">{item.reason}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Caution */}
-        <div className="space-y-3">
-          <h3 className="font-medium flex items-center gap-2">
-            <Badge variant="outline" className="border-yellow-500 text-yellow-500">謹慎使用</Badge>
-          </h3>
-          <div className="space-y-2">
-            {grouped.caution.map((item, i) => (
-              <div key={i} className="rounded-md border border-yellow-500/20 bg-yellow-500/5 p-3 space-y-1">
-                <p className="font-medium text-sm">{item.combo}</p>
-                <p className="text-sm text-muted-foreground">{item.reason}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Safe */}
-        <div className="space-y-3">
-          <h3 className="font-medium flex items-center gap-2">
-            <Badge variant="outline" className="border-green-500 text-green-500">常見安全搭配</Badge>
-          </h3>
-          <div className="space-y-2">
-            {grouped.safe.map((item, i) => (
-              <div key={i} className="rounded-md border border-green-500/20 bg-green-500/5 p-3 space-y-1">
-                <p className="font-medium text-sm">{item.combo}</p>
-                <p className="text-sm text-muted-foreground">{item.reason}</p>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </ScrollArea>
   )

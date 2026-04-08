@@ -7,6 +7,7 @@ import {
   aiKeyPoints,
 } from '@/lib/data/drug-guide'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { InfoTooltip } from '@/components/guide/info-tooltip'
 import {
   Table,
   TableBody,
@@ -54,7 +55,10 @@ export function EstrogenManagementTab() {
                   <TableCell>{ai.frequency}</TableCell>
                   <TableCell className="text-xs">{ai.e2Suppression}</TableCell>
                   <TableCell className="text-xs">{ai.lipidImpact}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{ai.notes}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {ai.notes}
+                    {ai.tooltip && <InfoTooltip content={ai.tooltip} source={ai.source} />}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -3,6 +3,7 @@
 import { cycleExamples } from '@/lib/data/drug-guide'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { InfoTooltip } from '@/components/guide/info-tooltip'
 import {
   Table,
   TableBody,
@@ -55,7 +56,10 @@ export function CycleExamplesTab() {
 
             <div className="space-y-1 text-sm">
               <p><span className="font-medium">AI：</span>{cycle.ai}</p>
-              <p><span className="font-medium">PCT：</span>{cycle.pct}</p>
+              <p>
+                <span className="font-medium">PCT：</span>{cycle.pct}
+                {cycle.pctTooltip && <InfoTooltip content={cycle.pctTooltip} />}
+              </p>
             </div>
 
             {cycle.notes.length > 0 && (

@@ -19,6 +19,7 @@ export interface CycleExample {
   compounds: CycleCompound[]
   ai: string
   pct: string
+  pctTooltip?: string
   notes: string[]
 }
 
@@ -48,8 +49,11 @@ export interface PCTTimingEntry {
 export interface PCTProtocol {
   name: string
   suitability: string
+  recommended?: boolean
   drugs: { name: string; dosage: string; duration: string }[]
   notes: string[]
+  tooltip?: string
+  source?: string
 }
 
 export interface AIComparisonEntry {
@@ -60,6 +64,8 @@ export interface AIComparisonEntry {
   e2Suppression: string
   lipidImpact: string
   notes: string
+  tooltip?: string
+  source?: string
 }
 
 export interface ProlactinProtocol {
@@ -75,6 +81,8 @@ export interface DrugInteraction {
   severity: 'danger' | 'caution' | 'safe'
   combo: string
   reason: string
+  tooltip?: string
+  source?: string
 }
 
 export interface CycleSupplement {
@@ -97,7 +105,8 @@ export const cycleExamples: CycleExample[] = [
       { name: 'Testosterone Enanthate / Cypionate', dosage: '300-500 mg/週', weeks: '1-12', frequency: '每週 2 次（一/四）' },
     ],
     ai: 'Aromasin 12.5mg EOD 或 Arimidex 0.5mg EOD — 僅在雌激素症狀出現時使用',
-    pct: '最後一針 2 週後開始：Nolvadex 20mg/天 x 4 週（第 3-4 週可降至 10mg），或 Clomid 50mg/天 x 2 週 → 25mg/天 x 2 週',
+    pct: '最後一針 2 週後開始：Nolvadex 20mg/天 + Clomid 50mg/天 x 4 週',
+    pctTooltip: 'Test E/C 半衰期 7-12 天，等待 2 週（~2 個半衰期）讓血藥濃度降至足夠低再開始 PCT，避免 SERM 與外源荷爾蒙競爭。',
     notes: [
       '預期增重：約 7-9 公斤淨體重',
       '下次週期前休息時間 ≥ 週期 + PCT 長度（最少 16 週）',
@@ -131,7 +140,8 @@ export const cycleExamples: CycleExample[] = [
       { name: 'Nandrolone Decanoate (Deca)', dosage: '300-400 mg/週', weeks: '1-12', frequency: '每週 1 次' },
     ],
     ai: 'Arimidex 0.5mg EOD（視需要）',
-    pct: '最後一針 Deca 後 3 週開始（Deca 清除時間較長）',
+    pct: '最後一針 Deca 後 3 週開始：聯合方案 x 6 週',
+    pctTooltip: 'Deca 半衰期 15 天且代謝物可殘留數月，需等 3 週讓血藥濃度充分下降。含 19-nor 的週期 PCT 建議延長至 6 週。',
     notes: [
       '睪酮劑量應 ≥ Deca 劑量（「Test base」規則）',
       '需備 Cabergoline 0.25mg 2x/週 以防泌乳素升高',
@@ -312,52 +322,36 @@ export const pctTimingTable: PCTTimingEntry[] = [
 
 export const pctProtocols: PCTProtocol[] = [
   {
-    name: 'Nolvadex 標準方案（20mg 平坦劑量）',
-    suitability: '輕度週期（Test-only, ≤12 週）',
+    name: 'Nolvadex + Clomid 聯合方案（推薦）',
+    suitability: '所有週期（標準推薦）',
+    recommended: true,
     drugs: [
-      { name: 'Nolvadex (Tamoxifen)', dosage: '20 mg/天', duration: '共 4 週' },
+      { name: 'Nolvadex (Tamoxifen)', dosage: '20 mg/天', duration: '共 6 週' },
+      { name: 'Clomid (Clomiphene)', dosage: '50 mg/天', duration: '前 2-4 週（與 Nolvadex 同時開始）' },
     ],
     notes: [
-      'Nolvadex 半衰期長（5-7 天），20mg 已接近最大 SERM 效果',
-      '副作用較 Clomid 少',
-      '新的社群共識傾向平坦 20mg 而非 40/20 遞減',
+      '聯合方案為首選 — 兩者作用機制互補，效益大於單用',
+      'Clomid 提供初始強力 FSH/LH 峰值推動恢復啟動',
+      'Nolvadex 提供持續穩定的垂體 LH 刺激並改善 GnRH 敏感度',
+      '含 19-nor（Deca/Tren）的週期建議至少 6 週',
+      '輕度 Test-only 週期可縮短至 4 週',
     ],
+    tooltip: 'Clomid 產生較強的初始 FSH/LH 峰值但長期會降低垂體敏感度；Nolvadex 研究顯示持續使用可增強垂體對 LHRH 的 LH 反應。兩者互補：Clomid 啟動 + Nolvadex 維持，效益遠大於單用。',
+    source: 'Fertility & Sterility — Hormonal Effects of Tamoxifen in Oligospermic Men',
   },
   {
-    name: 'Nolvadex 加強方案（40→20mg）',
-    suitability: '中度週期',
+    name: 'Nolvadex 單用方案（替代）',
+    suitability: '輕度週期或無法取得 Clomid 時',
     drugs: [
-      { name: 'Nolvadex (Tamoxifen)', dosage: '40 mg/天', duration: '第 1-2 週' },
-      { name: 'Nolvadex (Tamoxifen)', dosage: '20 mg/天', duration: '第 3-6 週' },
+      { name: 'Nolvadex (Tamoxifen)', dosage: '20 mg/天', duration: '共 4-6 週' },
     ],
     notes: [
-      '傳統方案，廣泛使用',
-      '40mg 初始劑量可加速血藥濃度達到穩態',
-      '中度以上週期建議延長至 6 週',
+      '20mg 已接近最大 SERM 效果，副作用較 Clomid 少',
+      '適合 Test-only ≤12 週的輕度週期',
+      '如需加強可改用 40mg/天 x 2 週 → 20mg/天 x 4 週',
     ],
-  },
-  {
-    name: 'Clomid 單獨方案',
-    suitability: '輕度至中度週期',
-    drugs: [
-      { name: 'Clomid (Clomiphene)', dosage: '50 mg/天', duration: '第 1-2 週' },
-      { name: 'Clomid (Clomiphene)', dosage: '25 mg/天', duration: '第 3-4 週' },
-    ],
-    notes: ['可能導致視覺問題和情緒波動', '效果與 Nolvadex 相當'],
-  },
-  {
-    name: 'Nolvadex + Clomid 聯合方案',
-    suitability: '中度至重度週期',
-    drugs: [
-      { name: 'Nolvadex', dosage: '20 mg/天', duration: '共 6 週' },
-      { name: 'Clomid', dosage: '25-50 mg/天', duration: '共 4-6 週' },
-    ],
-    notes: [
-      '適合較重的週期或含 19-nor 化合物的週期',
-      '兩者作用機制互補',
-      '含 Deca/Tren 的週期建議至少 6 週 PCT',
-      '19-nor 代謝物可在體內殘留數月，恢復較慢',
-    ],
+    tooltip: '新社群共識傾向平坦 20mg 而非 40/20 遞減。Nolvadex 半衰期長（5-7 天），20mg 即可提供接近最大的 SERM 效果。40mg 初始劑量可加速達到穩態但增加副作用（視覺、情緒），不成比例提升恢復效果。',
+    source: 'r/steroids Wiki PCT Guidelines',
   },
   {
     name: 'Dr. Scally Power PCT（黃金標準）',
@@ -373,6 +367,8 @@ export const pctProtocols: PCTProtocol[] = [
       '原始方案 Clomid 為 100mg，現社群多建議降至 50mg 以減少副作用',
       '適合長期或高劑量週期，總 PCT 時長約 6-7 週',
     ],
+    tooltip: '此方案包含 HCG（直接刺激 Leydig 細胞）+ 雙 SERM（刺激垂體 LH/FSH），三管齊下覆蓋 HPTA 軸所有層級。臨床研究 100% 成功率。',
+    source: 'Dr. Michael Scally — ASIH 臨床研究',
   },
 ]
 
@@ -386,11 +382,10 @@ export const hcgOnCycleProtocol = {
     '研究顯示 500 IU EOD 可維持睪丸內睪酮在基線或以上',
   ],
   warnings: [
-    '不要在 PCT 期間使用 HCG（會透過負反饋抑制 LH）',
-    'On-cycle 維護建議 250-500 IU/次；高於 500 IU 會增加芳香化（轉換為雌激素）',
-    '短期高劑量 PCT 方案（如 Scally 2500 IU EOD x 16 天）有臨床文獻支持',
-    '臨床生育治療常使用 1500-5000 IU 2-3x/週，持續數月',
-    '長期持續高劑量可能有 Leydig 細胞 LH 受體下調風險，但人體證據不如動物研究明確',
+    { text: '不要在 PCT 期間使用 HCG（會透過負反饋抑制 LH）', tooltip: 'HCG 模擬 LH 直接刺激 Leydig 細胞，同時在垂體層級透過負反饋抑制內源 LH 分泌。PCT 的目標是恢復內源 LH，因此 HCG 應在 PCT SERM 開始前完成。' },
+    { text: 'On-cycle 維護建議 250-500 IU/次；高於 500 IU 會增加芳香化', tooltip: '研究顯示 250 IU EOD 足以維持睪丸內睪酮。更高劑量主要增加芳香化（HCG 刺激睪丸芳香化酶），導致 E2 升高需要額外 AI 管理。' },
+    { text: '短期高劑量 PCT 方案（如 Scally 2500 IU EOD x 16 天）有臨床文獻支持', tooltip: '臨床生育治療常用 1500-5000 IU 2-3x/週持續數月。短期高劑量在有限時間內脫敏風險低。', source: 'PMC — HCG for Infertility Management (PMC6087849)' },
+    { text: '長期持續高劑量可能有 Leydig 細胞 LH 受體下調風險', tooltip: '主要來自動物研究（Menon et al.），人體證據較不明確。間歇性給藥允許受體恢復，因此 On-cycle 2-3x/週的間歇方案優於每日使用。' },
   ],
   importantNotes: [
     '務必做週期前血液檢查以建立基線',
@@ -408,6 +403,8 @@ export const aiComparison: AIComparisonEntry[] = [
     e2Suppression: '~50%（0.5mg），96%+（1mg）',
     lipidImpact: '負面（升高 LDL）',
     notes: '最常見；突然停藥會反彈',
+    tooltip: '可逆性 AI 在停藥後不再佔據芳香化酶，被抑制的酶立即恢復活性，加上積壓的基質快速轉化為雌激素，造成 E2 反彈。需緩慢減量而非突然停藥。',
+    source: 'NCBI — Aromatase Inhibitors (NBK557856)',
   },
   {
     name: 'Exemestane (Aromasin)',
@@ -417,6 +414,8 @@ export const aiComparison: AIComparisonEntry[] = [
     e2Suppression: '劑量依賴型',
     lipidImpact: '中性/輕微正面',
     notes: '首選 — 無反彈；輕微雄激素性',
+    tooltip: '自殺性 AI 永久結合並摧毀芳香化酶分子，停藥後 E2 恢復需等待身體合成新酶（數天），因此無反彈。Aromasin 本身具有輕微雄激素活性，對脂質影響中性甚至輕微正面。',
+    source: 'PMC — AI Musculoskeletal Pain (PMC8935546)',
   },
   {
     name: 'Letrozole (Femara)',
@@ -426,6 +425,8 @@ export const aiComparison: AIComparisonEntry[] = [
     e2Suppression: '極強（>95%）',
     lipidImpact: '負面',
     notes: '僅限緊急使用（活性女乳症）；日常使用太強',
+    tooltip: 'Letrozole 在 2.5mg 下可將 E2 抑制 >98%，極容易導致 E2 崩潰。僅在活性女乳症（已可觸摸到組織增生）時短期使用數天，然後轉為 Aromasin 維持。',
+    source: 'NCBI — Aromatase Inhibitors',
   },
 ]
 
@@ -522,6 +523,38 @@ export const clenProtocols: ClenProtocol[] = [
       '如果靜息心率 >100bpm 或出現嚴重震顫，應降低劑量',
     ],
   },
+  {
+    name: '持續遞增方案（搭配 Ketotifen）',
+    description: '從低劑量開始逐步升高，搭配 Ketotifen 上調 Beta-2 受體以延長持續使用時間。適合偏好不中斷的使用者。',
+    schedule: [
+      '第 1-2 週：20-40 mcg/天',
+      '第 3-4 週：60-80 mcg/天',
+      '第 5-6 週：80-100 mcg/天',
+      '第 7-8 週：100-120 mcg/天（最高劑量）',
+      '每 2-3 週增加 ~20 mcg，隨耐受性調整',
+      'Ketotifen 2-3mg/天（睡前服用）— 從第 2 週起持續使用',
+    ],
+    dosageRange: [
+      { gender: '男性', start: '20-40 mcg/天', max: '120-140 mcg/天' },
+      { gender: '女性', start: '10-20 mcg/天', max: '80-100 mcg/天' },
+    ],
+    sideEffects: [
+      '手部震顫（最常見，通常第 3-4 天適應）',
+      '心跳加速（靜息心率應控制在 100 bpm 以下）',
+      '肌肉抽筋（補充 Taurine 3-5g/天 + 鉀）',
+      '失眠（建議早上服用）',
+      '出汗增加',
+      '嗜睡（Ketotifen 副作用，建議睡前服用）',
+    ],
+    notes: [
+      '總時長 8-12 週持續使用',
+      'Ketotifen 為抗組織胺藥物，可上調 Beta-2 受體以對抗 Clen 引起的受體下調',
+      'PubMed 研究證實 Ketotifen + Clen 可增加 Beta 腎上腺素受體功能',
+      '優點：持續脂肪燃燒、減少停藥中斷、效果更平穩',
+      '缺點：累積心臟壓力較高、需額外藥物、後期高劑量效益遞減',
+      '到達最高安全劑量後無法再升高 — 此方案有天花板限制',
+    ],
+  },
 ]
 
 export const t3Protocols: T3Protocol[] = [
@@ -598,9 +631,9 @@ export const prolactinKeyPoints = [
 
 export const drugInteractions: DrugInteraction[] = [
   // 禁止
-  { severity: 'danger', combo: '多種 C17-aa 口服同時使用', reason: '肝毒性疊加（如 Dbol + Anadrol、Winstrol + Superdrol）極度危險' },
+  { severity: 'danger', combo: '多種 C17-aa 口服同時使用', reason: '肝毒性疊加（如 Dbol + Anadrol、Winstrol + Superdrol）極度危險', tooltip: 'C17-alpha 烷基化修飾使口服類固醇能通過肝臟首過效應而不被代謝，但代價是直接的肝細胞毒性。多種 C17-aa 同時使用會使肝酶（AST/ALT）急劇升高，嚴重可導致膽汁淤積性肝炎。', source: 'PMC — AAS-Induced Liver Injury (PMC9331524)' },
   { severity: 'danger', combo: 'Trenbolone + Halotestin', reason: '兩者皆為極端化合物，心血管和肝臟壓力嚴重' },
-  { severity: 'danger', combo: '多種 19-nor 化合物同時使用', reason: 'Tren + Deca：極度抑制、泌乳素問題疊加、恢復困難' },
+  { severity: 'danger', combo: '多種 19-nor 化合物同時使用', reason: 'Tren + Deca：極度抑制、泌乳素問題疊加、恢復困難', tooltip: '19-nor 化合物的代謝物（如 Nandrolone 的 19-norandrosterone）可在體內殘留長達 18 個月，持續抑制 HPTA。兩種 19-nor 同時使用使泌乳素問題和 HPTA 抑制疊加，PCT 恢復極為困難。', source: 'PMC — Harm Reduction in Male AAS Users (PMC8298654)' },
   { severity: 'danger', combo: '長期 Letrozole + 高強度訓練', reason: 'E2 崩潰導致關節受傷風險' },
   // 謹慎
   { severity: 'caution', combo: '口服超過 6 週', reason: '肝毒性風險顯著增加' },
