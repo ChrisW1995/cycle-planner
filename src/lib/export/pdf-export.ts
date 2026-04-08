@@ -3,24 +3,35 @@ import autoTable from 'jspdf-autotable'
 import { formatOralInventory, getDayLabels, groupDeltasByCategory } from '@/lib/utils'
 import type { CycleCell, DrugInventoryDelta } from '@/types'
 
-let cachedFont: string | null = null
+let cachedRegular: string | null = null
+let cachedBold: string | null = null
+
+async function fontToBase64(url: string): Promise<string | null> {
+  const res = await fetch(url)
+  if (!res.ok) return null
+  const buffer = await res.arrayBuffer()
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return btoa(binary)
+}
 
 async function loadCJKFont(doc: jsPDF): Promise<boolean> {
   try {
-    if (!cachedFont) {
-      const res = await fetch('/fonts/NotoSansTC.ttf')
-      if (!res.ok) return false
-      const buffer = await res.arrayBuffer()
-      const bytes = new Uint8Array(buffer)
-      let binary = ''
-      for (let i = 0; i < bytes.length; i++) {
-        binary += String.fromCharCode(bytes[i])
-      }
-      cachedFont = btoa(binary)
-    }
-    doc.addFileToVFS('NotoSansTC.ttf', cachedFont)
+    if (!cachedRegular) cachedRegular = await fontToBase64('/fonts/NotoSansTC.ttf')
+    if (!cachedBold) cachedBold = await fontToBase64('/fonts/NotoSansTC-Bold.ttf')
+    if (!cachedRegular) return false
+    doc.addFileToVFS('NotoSansTC.ttf', cachedRegular)
     doc.addFont('NotoSansTC.ttf', 'NotoSansTC', 'normal')
-    doc.addFont('NotoSansTC.ttf', 'NotoSansTC', 'bold')
+    if (cachedBold) {
+      doc.addFileToVFS('NotoSansTC-Bold.ttf', cachedBold)
+      doc.addFont('NotoSansTC-Bold.ttf', 'NotoSansTC', 'bold')
+    } else {
+      // Fallback: register regular as bold if bold file unavailable
+      doc.addFont('NotoSansTC.ttf', 'NotoSansTC', 'bold')
+    }
     return true
   } catch {
     return false
@@ -121,20 +132,6 @@ export async function exportScheduleToPDF(
     },
     margin: { left: 10, right: 10 },
     didDrawCell: (data) => {
-      // Simulate bold for head cells and Week column by double-drawing
-      if (data.section === 'head' || (data.section === 'body' && data.column.index === 0)) {
-        const text = String(data.cell.text || '')
-        if (text) {
-          doc.setFontSize(data.section === 'head' ? 10 : fontSize)
-          doc.setFont(fontName, 'normal', 'bold')
-          if (data.section === 'head') { doc.setTextColor(255, 255, 255) } else { doc.setTextColor(20, 20, 20) }
-          const cellX = data.cell.x + data.cell.width / 2
-          const cellY = data.cell.y + data.cell.height / 2 + (data.section === 'head' ? 1.2 : 0.8)
-          doc.text(text, cellX + 0.15, cellY, { align: 'center' })
-        }
-        if (data.section === 'head') return
-      }
-
       // Only custom-draw body cells for day columns (not Week column)
       if (data.section !== 'body' || data.column.index === 0) return
 
@@ -154,20 +151,18 @@ export async function exportScheduleToPDF(
       for (const entry of entries) {
         const parts = splitDrugEntry(entry)
         if (parts) {
-          // Drug name — simulated bold (double draw), dark, left aligned
+          // Drug name — bold dark, left aligned
           doc.setFont(fontName, 'normal', 'bold')
           doc.setTextColor(20, 20, 20)
           doc.text(parts[0], x, y)
-          doc.text(parts[0], x + 0.12, y)
-          // Dose — simulated bold, lighter, right aligned
+          // Dose — normal lighter, right aligned
+          doc.setFont(fontName, 'normal', 'normal')
           doc.setTextColor(120, 120, 120)
           doc.text(parts[1], xRight, y, { align: 'right' })
-          doc.text(parts[1], xRight + 0.12, y, { align: 'right' })
         } else {
           doc.setFont(fontName, 'normal', 'bold')
           doc.setTextColor(20, 20, 20)
           doc.text(entry, x, y)
-          doc.text(entry, x + 0.12, y)
         }
         y += entrySpacing
       }
@@ -191,9 +186,7 @@ export async function exportScheduleToPDF(
     doc.setFont(fontName, 'normal', 'bold')
     doc.setFontSize(14)
     doc.setTextColor(0)
-    const statsTitle = hasCJK ? '藥物用量統計' : 'Drug Stats'
-    doc.text(statsTitle, 14, 15)
-    doc.text(statsTitle, 14.15, 15) // simulate bold
+    doc.text(hasCJK ? '藥物用量統計' : 'Drug Stats', 14, 15)
 
     const statsHeaders = hasCJK ? ['藥物', '需求量'] : ['Drug', 'Needed']
     const groups = groupDeltasByCategory(deltas)
@@ -250,29 +243,6 @@ export async function exportScheduleToPDF(
       },
       margin: { left: 10, right: 10 },
       tableWidth: 100,
-      didDrawCell: (data) => {
-        // Simulate bold for all stats cells via double-draw
-        const text = String(data.cell.text || '')
-        if (!text) return
-        const fs = data.section === 'head' ? 10 : 9
-        doc.setFontSize(fs)
-        doc.setFont(fontName, 'normal', 'bold')
-        if (data.section === 'head') {
-          doc.setTextColor(255, 255, 255)
-        } else if (data.column.index === 1) {
-          doc.setTextColor(100, 100, 100)
-        } else {
-          doc.setTextColor(20, 20, 20)
-        }
-        const align = (data.section === 'head') ? 'center' : (data.column.index === 1 ? 'right' : 'left')
-        const tx = align === 'center'
-          ? data.cell.x + data.cell.width / 2
-          : align === 'right'
-            ? data.cell.x + data.cell.width - 2
-            : data.cell.x + 2
-        const ty = data.cell.y + data.cell.height / 2 + fs * 0.12
-        doc.text(text, tx + 0.12, ty, { align })
-      },
     })
   }
 
