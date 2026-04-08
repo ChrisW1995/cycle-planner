@@ -230,8 +230,14 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
           )
         }
         if (existingIdx >= 0) {
-          // Update destination, keep original source
-          next[existingIdx] = { ...next[existingIdx], toWeek: move.toWeek, toDay: move.toDay }
+          const orig = next[existingIdx]
+          if (orig.fromWeek === move.toWeek && orig.fromDay === move.toDay) {
+            // Dragged back to original position — cancel the move
+            next.splice(existingIdx, 1)
+          } else {
+            // Update destination, keep original source
+            next[existingIdx] = { ...orig, toWeek: move.toWeek, toDay: move.toDay }
+          }
         } else {
           next.push(move)
         }
