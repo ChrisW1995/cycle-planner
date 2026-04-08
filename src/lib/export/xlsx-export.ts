@@ -143,13 +143,13 @@ export function exportScheduleToXLSX(
     titleRow.getCell(1).font = { bold: true, size: 16 }
     ws.mergeCells(titleRow.number, 1, titleRow.number, 8)
 
-    // Column headers: 藥物 (cols 1-4), 需求量 (cols 5-8)
+    // Column headers: 藥物 (cols 1-3), 需求量 (cols 4-6)
     const colHdrRow = ws.addRow([])
     colHdrRow.getCell(1).value = '藥物'
-    colHdrRow.getCell(5).value = '需求量'
-    ws.mergeCells(colHdrRow.number, 1, colHdrRow.number, 4)
-    ws.mergeCells(colHdrRow.number, 5, colHdrRow.number, 8)
-    for (let c = 1; c <= 8; c++) {
+    colHdrRow.getCell(4).value = '需求量'
+    ws.mergeCells(colHdrRow.number, 1, colHdrRow.number, 3)
+    ws.mergeCells(colHdrRow.number, 4, colHdrRow.number, 6)
+    for (let c = 1; c <= 6; c++) {
       const cell = colHdrRow.getCell(c)
       cell.fill = HEADER_FILL
       cell.font = HEADER_FONT
@@ -159,14 +159,14 @@ export function exportScheduleToXLSX(
 
     const groups = groupDeltasByCategory(deltas)
     for (const group of groups) {
-      // Category header row — merged across full width, centered, with background
+      // Category header row — merged across 6 columns, centered, with background
       const catRow = ws.addRow([])
       catRow.getCell(1).value = group.label
-      ws.mergeCells(catRow.number, 1, catRow.number, 8)
+      ws.mergeCells(catRow.number, 1, catRow.number, 6)
       catRow.getCell(1).font = { name: 'Calibri', bold: true, size: 14, color: { argb: 'FF555555' } }
       catRow.getCell(1).fill = CAT_FILL
       catRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
-      for (let c = 1; c <= 8; c++) catRow.getCell(c).border = THIN_BORDER
+      for (let c = 1; c <= 6; c++) catRow.getCell(c).border = THIN_BORDER
 
       for (const d of group.items) {
         const isE3D = d.ester_type === 'E3D'
@@ -178,15 +178,17 @@ export function exportScheduleToXLSX(
             : `${d.needed_ml} ml (${d.needed_vials} 瓶)`
         const dataRow = ws.addRow([])
         dataRow.getCell(1).value = d.drug_name
-        dataRow.getCell(5).value = needed
-        ws.mergeCells(dataRow.number, 1, dataRow.number, 4)
-        ws.mergeCells(dataRow.number, 5, dataRow.number, 8)
-        for (let c = 1; c <= 8; c++) {
+        dataRow.getCell(4).value = needed
+        ws.mergeCells(dataRow.number, 1, dataRow.number, 3)
+        ws.mergeCells(dataRow.number, 4, dataRow.number, 6)
+        for (let c = 1; c <= 6; c++) {
           const cell = dataRow.getCell(c)
           cell.font = BODY_FONT
           cell.border = THIN_BORDER
           cell.alignment = { vertical: 'middle' }
         }
+        // 需求量靠右
+        dataRow.getCell(4).alignment = { horizontal: 'right', vertical: 'middle' }
       }
     }
   }
