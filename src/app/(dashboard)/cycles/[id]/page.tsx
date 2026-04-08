@@ -436,33 +436,47 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {cycle.cycle_drugs.map((cd) => (
-                <div key={cd.id} className="flex items-center gap-1 rounded-md bg-muted px-3 py-1.5 text-sm">
-                  <Link href={`/drugs/${cd.drug_id}/edit`} className="font-medium hover:underline">
-                    {cd.drug?.name}
-                  </Link>
-                  <span className="text-muted-foreground">
-                    {cd.injection_ml
-                      ? `${cd.injection_ml}ml × ${cd.total_injections}次`
-                      : cd.weekly_dose
-                        ? `${cd.weekly_dose}${getDoseUnit(cd.drug?.unit)}/wk`
-                        : `${cd.daily_dose}${getDoseUnit(cd.drug?.unit)}/day`}
-                  </span>
-                  <span className="text-muted-foreground">
-                    W{cd.start_week}-{cd.end_week}
-                  </span>
-                  {isEditable && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5 ml-1"
-                      onClick={() => removeCycleDrug.mutate({ id: cd.id, cycle_id: id })}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+              {(() => {
+                // Group cycle_drugs by drug_id
+                const grouped = new Map<string, typeof cycle.cycle_drugs>()
+                for (const cd of cycle.cycle_drugs!) {
+                  const key = cd.drug_id
+                  if (!grouped.has(key)) grouped.set(key, [])
+                  grouped.get(key)!.push(cd)
+                }
+                return Array.from(grouped.values()).map((entries) => (
+                  <div key={entries[0].drug_id} className="flex items-center gap-1 rounded-md bg-muted px-3 py-1.5 text-sm">
+                    <Link href={`/drugs/${entries[0].drug_id}/edit`} className="font-medium hover:underline">
+                      {entries[0].drug?.name}
+                    </Link>
+                    {entries.map((cd, i) => (
+                      <span key={cd.id} className="flex items-center gap-1">
+                        {i > 0 && <span className="text-muted-foreground/50">·</span>}
+                        <span className="text-muted-foreground">
+                          {cd.injection_ml
+                            ? `${cd.injection_ml}ml × ${cd.total_injections}次`
+                            : cd.weekly_dose
+                              ? `${cd.weekly_dose}${getDoseUnit(cd.drug?.unit)}/wk`
+                              : `${cd.daily_dose}${getDoseUnit(cd.drug?.unit)}/day`}
+                        </span>
+                        <span className="text-muted-foreground">
+                          W{cd.start_week}-{cd.end_week}
+                        </span>
+                        {isEditable && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5"
+                            onClick={() => removeCycleDrug.mutate({ id: cd.id, cycle_id: id })}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                ))
+              })()}
             </div>
           </CardContent>
         </Card>

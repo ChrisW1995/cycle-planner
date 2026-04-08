@@ -123,11 +123,18 @@ export default function PersonDetailPage({ params }: { params: Promise<{ id: str
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {cycle.cycle_drugs?.map((cd: any) => (
-                            <Badge key={cd.id} variant="secondary" className="text-xs">
-                              {cd.drug?.name}
-                            </Badge>
-                          ))}
+                          {(() => {
+                            const seen = new Set<string>()
+                            return cycle.cycle_drugs?.filter((cd: any) => {
+                              if (seen.has(cd.drug_id)) return false
+                              seen.add(cd.drug_id)
+                              return true
+                            }).map((cd: any) => (
+                              <Badge key={cd.drug_id} variant="secondary" className="text-xs">
+                                {cd.drug?.name}
+                              </Badge>
+                            ))
+                          })()}
                         </div>
                       </TableCell>
                       <TableCell>
