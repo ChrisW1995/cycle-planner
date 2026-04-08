@@ -102,6 +102,10 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
 
   // Handlers
   const handleAddDrug = useCallback((data: { drug_id: string; weekly_dose?: number; daily_dose?: number; injection_ml?: number; total_injections?: number; start_week: number; end_week: number }) => {
+    // Auto-expand total weeks if drug end_week exceeds current cycle length
+    if (cycle && data.end_week > cycle.total_weeks) {
+      updateCycle.mutate({ id, total_weeks: data.end_week })
+    }
     addCycleDrug.mutate({
       cycle_id: id,
       ...data,
@@ -110,7 +114,7 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
       injection_ml: data.injection_ml || undefined,
       total_injections: data.total_injections || undefined,
     })
-  }, [id, addCycleDrug])
+  }, [id, addCycleDrug, cycle, updateCycle])
 
   const handleSave = useCallback(() => {
     const cellsToSave = displayCells.map((c) => ({

@@ -23,8 +23,14 @@ const DEFAULT_TABS_PER_BOX = 100
  */
 export function calculateTotalMl(cycleDrug: CycleDrugWithDrug): number {
   const { drug } = cycleDrug
-  if (drug.primary_category !== 'Injectable' || !cycleDrug.weekly_dose) return 0
+  if (drug.primary_category !== 'Injectable') return 0
 
+  // E3D: fixed ml per injection × total injection count (no weekly_dose)
+  if (drug.ester_type === 'E3D' && cycleDrug.injection_ml && cycleDrug.total_injections) {
+    return Math.round(cycleDrug.injection_ml * cycleDrug.total_injections * 100) / 100
+  }
+
+  if (!cycleDrug.weekly_dose) return 0
   const weeks = cycleDrug.end_week - cycleDrug.start_week + 1
 
   if (drug.ester_type === 'Long') {
@@ -35,9 +41,6 @@ export function calculateTotalMl(cycleDrug: CycleDrugWithDrug): number {
     // 3.5 injections per week
     const mlPerInjection = cycleDrug.weekly_dose / 3.5 / drug.concentration
     return Math.round(mlPerInjection * 3.5 * weeks * 100) / 100
-  } else if (drug.ester_type === 'E3D' && cycleDrug.injection_ml && cycleDrug.total_injections) {
-    // E3D: fixed ml per injection × total injection count
-    return Math.round(cycleDrug.injection_ml * cycleDrug.total_injections * 100) / 100
   }
 
   return 0
@@ -147,26 +150,9 @@ export function calculateWeeklyUsage(
     return { totalMl: 0, totalMg: 0 }
   }
 
-  if (drug.primary_category === 'Injectable' && cycleDrug.weekly_dose) {
-    if (drug.ester_type === 'Long') {
-      const mlPerWeek = cycleDrug.weekly_dose / drug.concentration
-      return {
-        totalMl: Math.round(mlPerWeek * 100) / 100,
-        totalMg: cycleDrug.weekly_dose,
-      }
-    } else if (drug.ester_type === 'Short') {
-      // EOD pattern: depends on whether this is odd or even week in pair
-      const mlPerInjection = cycleDrug.weekly_dose / 3.5 / drug.concentration
-      const weekOffset = weekNumber - cycleDrug.start_week
-      const injectionsThisWeek = weekOffset % 2 === 0 ? 4 : 3 // Week N=4, Week N+1=3
-      const mlThisWeek = mlPerInjection * injectionsThisWeek
-      const mgThisWeek = (cycleDrug.weekly_dose / 3.5) * injectionsThisWeek
-      return {
-        totalMl: Math.round(mlThisWeek * 100) / 100,
-        totalMg: Math.round(mgThisWeek * 100) / 100,
-      }
-    } else if (drug.ester_type === 'E3D' && cycleDrug.injection_ml) {
-      // E3D: count actual injections in this week
+  if (drug.primary_category === 'Injectable') {
+    // E3D: count actual injections in this week (no weekly_dose)
+    if (drug.ester_type === 'E3D' && cycleDrug.injection_ml) {
       const absStart = (cycleDrug.start_week - 1) * 7 + 1
       const maxInj = cycleDrug.total_injections || 0
       let injectionsThisWeek = 0
@@ -181,6 +167,26 @@ export function calculateWeeklyUsage(
       return {
         totalMl: Math.round(mlThisWeek * 100) / 100,
         totalMg: Math.round(mlThisWeek * drug.concentration * 100) / 100,
+      }
+    }
+
+    if (cycleDrug.weekly_dose) {
+      if (drug.ester_type === 'Long') {
+        const mlPerWeek = cycleDrug.weekly_dose / drug.concentration
+        return {
+          totalMl: Math.round(mlPerWeek * 100) / 100,
+          totalMg: cycleDrug.weekly_dose,
+        }
+      } else if (drug.ester_type === 'Short') {
+        const mlPerInjection = cycleDrug.weekly_dose / 3.5 / drug.concentration
+        const weekOffset = weekNumber - cycleDrug.start_week
+        const injectionsThisWeek = weekOffset % 2 === 0 ? 4 : 3
+        const mlThisWeek = mlPerInjection * injectionsThisWeek
+        const mgThisWeek = (cycleDrug.weekly_dose / 3.5) * injectionsThisWeek
+        return {
+          totalMl: Math.round(mlThisWeek * 100) / 100,
+          totalMg: Math.round(mgThisWeek * 100) / 100,
+        }
       }
     }
   }

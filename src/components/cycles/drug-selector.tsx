@@ -30,7 +30,7 @@ export function DrugSelector({ open, onClose, onAdd, totalWeeks, existingDrugIds
   const [selectedDrugId, setSelectedDrugId] = useState('')
   const [weeklyDose, setWeeklyDose] = useState('')
   const [dailyDose, setDailyDose] = useState('')
-  const [injectionMl, setInjectionMl] = useState('')
+  const [vialMl, setVialMl] = useState('')
   const [totalInjections, setTotalInjections] = useState('')
   const [startWeek, setStartWeek] = useState('1')
   const [endWeek, setEndWeek] = useState(totalWeeks.toString())
@@ -40,7 +40,15 @@ export function DrugSelector({ open, onClose, onAdd, totalWeeks, existingDrugIds
   const isInjectable = selectedDrug?.primary_category === 'Injectable' && !isE3D
   const isOral = selectedDrug?.primary_category === 'Oral' || selectedDrug?.primary_category === 'PCT'
 
-  // E3D: auto-calculate end_week from start_week + total_injections
+  // E3D: auto-calculate ml per injection and end_week
+  const e3dMlPerInjection = (() => {
+    if (!isE3D || !vialMl || !totalInjections) return null
+    const total = parseFloat(vialMl)
+    const count = parseInt(totalInjections)
+    if (!total || !count || count <= 0) return null
+    return Math.floor((total / count) * 100) / 100
+  })()
+
   const e3dEndWeek = (() => {
     if (!isE3D || !totalInjections) return null
     const count = parseInt(totalInjections)
@@ -57,7 +65,7 @@ export function DrugSelector({ open, onClose, onAdd, totalWeeks, existingDrugIds
       const computedEnd = e3dEndWeek || parseInt(startWeek)
       onAdd({
         drug_id: selectedDrugId,
-        injection_ml: parseFloat(injectionMl) || undefined,
+        injection_ml: e3dMlPerInjection || undefined,
         total_injections: parseInt(totalInjections) || undefined,
         start_week: parseInt(startWeek),
         end_week: computedEnd,
@@ -76,7 +84,7 @@ export function DrugSelector({ open, onClose, onAdd, totalWeeks, existingDrugIds
     setSelectedDrugId('')
     setWeeklyDose('')
     setDailyDose('')
-    setInjectionMl('')
+    setVialMl('')
     setTotalInjections('')
     setStartWeek('1')
     setEndWeek(totalWeeks.toString())
@@ -95,10 +103,9 @@ export function DrugSelector({ open, onClose, onAdd, totalWeeks, existingDrugIds
       preview = `每次注射 ${ml}ml (隔日，跨兩週交替)`
     }
   }
-  if (selectedDrug && isE3D && injectionMl && totalInjections) {
+  if (selectedDrug && isE3D && e3dMlPerInjection && totalInjections) {
     const count = parseInt(totalInjections)
-    const ml = parseFloat(injectionMl)
-    const totalMl = Math.round(ml * count * 100) / 100
+    const totalMl = parseFloat(vialMl)
     // Generate day pattern preview
     const absStart = (parseInt(startWeek) - 1) * 7 + 1
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -116,7 +123,7 @@ export function DrugSelector({ open, onClose, onAdd, totalWeeks, existingDrugIds
       }
     }
     if (count > 10) pattern.push('...')
-    preview = `每次 ${ml}ml × ${count} 次 = ${totalMl}ml\n${pattern.join(' → ')}`
+    preview = `${totalMl}ml ÷ ${count} 次 = 每次 ${e3dMlPerInjection}ml\n${pattern.join(' → ')}`
   }
   if (selectedDrug && isOral && dailyDose) {
     const tabs = Math.round((parseFloat(dailyDose) / selectedDrug.concentration) * 10) / 10
@@ -127,7 +134,7 @@ export function DrugSelector({ open, onClose, onAdd, totalWeeks, existingDrugIds
   const isDisabled = !selectedDrugId
     || (isInjectable && !weeklyDose)
     || (isOral && !dailyDose)
-    || (isE3D && (!injectionMl || !totalInjections))
+    || (isE3D && (!vialMl || !totalInjections))
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -198,13 +205,13 @@ export function DrugSelector({ open, onClose, onAdd, totalWeeks, existingDrugIds
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>每次注射量 (ml) *</Label>
+                  <Label>一瓶總量 (ml) *</Label>
                   <Input
                     type="number"
                     step="any"
-                    value={injectionMl}
-                    onChange={(e) => setInjectionMl(e.target.value)}
-                    placeholder="e.g. 0.33"
+                    value={vialMl}
+                    onChange={(e) => setVialMl(e.target.value)}
+                    placeholder="e.g. 1"
                   />
                 </div>
                 <div className="space-y-2">
@@ -214,7 +221,7 @@ export function DrugSelector({ open, onClose, onAdd, totalWeeks, existingDrugIds
                     min="1"
                     value={totalInjections}
                     onChange={(e) => setTotalInjections(e.target.value)}
-                    placeholder="e.g. 6"
+                    placeholder="e.g. 3"
                   />
                 </div>
               </div>
