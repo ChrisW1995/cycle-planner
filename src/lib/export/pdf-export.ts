@@ -88,27 +88,28 @@ export function exportScheduleToPDF(
     },
   })
 
-  // Drug stats table
+  // Drug stats table — on a new page, using English to avoid CJK font issues
   if (deltas && deltas.length > 0) {
-    const finalY = (doc as any).lastAutoTable?.finalY || 22
-    const startY = finalY + 10
+    doc.addPage()
 
     doc.setFontSize(11)
     doc.setTextColor(0)
-    doc.text('Drug Stats', 14, startY)
+    doc.text('Drug Stats', 14, 15)
 
-    const statsHeaders = ['Drug', 'Needed', 'Qty']
+    const statsHeaders = ['Drug', 'Needed']
     const statsBody = deltas.map((d) => {
       const isOral = d.category === 'Oral' || d.category === 'PCT'
-      return [
-        d.drug_name,
-        isOral ? formatOralInventory(d.needed_ml, d.tabs_per_box) : `${d.needed_ml} ml`,
-        isOral ? `${d.needed_vials} 盒` : `${d.needed_vials} 瓶`,
-      ]
+      const isE3D = d.ester_type === 'E3D'
+      const needed = isOral
+        ? `${Math.round(d.needed_ml)} tabs (${d.needed_vials} box)`
+        : isE3D
+          ? `${d.needed_vials} vials`
+          : `${d.needed_ml} ml (${d.needed_vials} vials)`
+      return [d.drug_name, needed]
     })
 
     autoTable(doc, {
-      startY: startY + 3,
+      startY: 20,
       head: [statsHeaders],
       body: statsBody,
       theme: 'grid',
@@ -125,8 +126,7 @@ export function exportScheduleToPDF(
       },
       columnStyles: {
         0: { cellWidth: 40 },
-        1: { cellWidth: 30, halign: 'right' },
-        2: { cellWidth: 30, halign: 'right' },
+        1: { cellWidth: 60, halign: 'right' },
       },
       margin: { left: 10, right: 10 },
       tableWidth: 100,
