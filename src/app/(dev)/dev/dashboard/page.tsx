@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
-import { Plus, Trash2, LogOut, ArrowLeft } from 'lucide-react'
+import { Plus, Trash2, LogOut, ArrowLeft, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import type { Account } from '@/types'
@@ -28,6 +28,8 @@ export default function DevDashboardPage() {
   const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   // Verify developer
   useEffect(() => {
@@ -60,6 +62,10 @@ export default function DevDashboardPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (password !== confirmPassword) {
+      toast.error('密碼不一致', { description: '請確認兩次輸入的密碼相同' })
+      return
+    }
     const res = await fetch('/api/admin/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -71,7 +77,7 @@ export default function DevDashboardPage() {
       return
     }
     toast.success('Admin 帳號已建立')
-    setUsername(''); setDisplayName(''); setPassword('')
+    setUsername(''); setDisplayName(''); setPassword(''); setConfirmPassword(''); setShowPassword(false)
     setCreateOpen(false)
     fetchAccounts()
   }
@@ -179,7 +185,21 @@ export default function DevDashboardPage() {
             </div>
             <div className="space-y-2">
               <Label>密碼 *</Label>
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="至少 6 個字元" required minLength={6} />
+              <div className="relative">
+                <Input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="至少 6 個字元" required minLength={6} className="pr-10" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>確認密碼 *</Label>
+              <div className="relative">
+                <Input type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="再次輸入密碼" required minLength={6} className="pr-10" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>取消</Button>

@@ -13,14 +13,7 @@ function getServiceClient() {
 
 // Verify caller is admin (JWT) or developer (Supabase Auth)
 async function verifyAdminOrDeveloper(request: NextRequest): Promise<{ role: string } | null> {
-  // Check JWT cookie (admin/viewer)
-  const token = request.cookies.get(COOKIE_NAME)?.value
-  if (token) {
-    const session = await verifySessionToken(token)
-    if (session && session.role === 'admin') return { role: 'admin' }
-  }
-
-  // Check Supabase Auth (developer)
+  // Check Supabase Auth (developer) first — developer takes priority
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (user) {
@@ -30,6 +23,13 @@ async function verifyAdminOrDeveloper(request: NextRequest): Promise<{ role: str
       .eq('id', user.id)
       .single()
     if (profile?.role === 'developer') return { role: 'developer' }
+  }
+
+  // Check JWT cookie (admin/viewer)
+  const token = request.cookies.get(COOKIE_NAME)?.value
+  if (token) {
+    const session = await verifySessionToken(token)
+    if (session && session.role === 'admin') return { role: 'admin' }
   }
 
   return null
