@@ -25,6 +25,7 @@ import Link from 'next/link'
 import { statusColors, statusLabels } from '@/lib/constants/cycle-status'
 import type { CycleStatus, CycleCell } from '@/types'
 import type { OverlapReplaceOps } from '@/components/cycles/drug-selector'
+import type { CellMoveData } from '@/components/cycles/schedule-grid'
 
 export default function CycleBuilderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -49,6 +50,7 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
   const [localOverrides, setLocalOverrides] = useState<Map<string, { value: string; ml: number | null }>>(new Map())
   const [localSkips, setLocalSkips] = useState<Set<string> | null>(null)
   const [localNotes, setLocalNotes] = useState<string | null>(null)
+  const [localMoves, setLocalMoves] = useState<CellMoveData[]>([])
 
   // Initialize skip state from saved cells (once on load)
   const savedSkipSet = useMemo(() => {
@@ -73,10 +75,37 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
 
   // Convert generated cells to CycleCell-like objects for the grid
   const displayCells: CycleCell[] = useMemo(() => {
-    return generatedCells.map((cell, i) => {
+    // Build a set of moved-away sources and a list of moved-to targets
+    const movedSourceKeys = new Set<string>()
+    const movedTargets: CycleCell[] = []
+
+    for (const move of localMoves) {
+      movedSourceKeys.add(`${move.cycleDrugId}-${move.fromWeek}-${move.fromDay}`)
+      // Find the source cell to copy its display info
+      const sourceCell = generatedCells.find(
+        (c) => c.cycle_drug_id === move.cycleDrugId && c.week_number === move.fromWeek && c.day_of_week === move.fromDay
+      )
+      if (sourceCell) {
+        movedTargets.push({
+          id: `moved-${move.cycleDrugId}-${move.toWeek}-${move.toDay}`,
+          cycle_id: id,
+          cycle_drug_id: sourceCell.cycle_drug_id,
+          week_number: move.toWeek,
+          day_of_week: move.toDay,
+          display_value: sourceCell.display_value,
+          ml_amount: sourceCell.ml_amount,
+          is_manual_override: true,
+          is_skipped: false,
+          created_at: '',
+        })
+      }
+    }
+
+    const baseCells = generatedCells.map((cell, i) => {
       const key = `${cell.week_number}-${cell.day_of_week}`
       const override = localOverrides.get(`${key}-${cell.cycle_drug_id}`)
       const skipKey = `${cell.cycle_drug_id}-${cell.week_number}-${cell.day_of_week}`
+      const wasMovedAway = movedSourceKeys.has(skipKey)
       return {
         id: `gen-${i}`,
         cycle_id: id,
@@ -85,12 +114,14 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
         day_of_week: cell.day_of_week,
         display_value: override?.value || cell.display_value,
         ml_amount: override?.ml ?? cell.ml_amount,
-        is_manual_override: cell.is_manual_override || !!override,
-        is_skipped: activeSkips.has(skipKey),
+        is_manual_override: cell.is_manual_override || !!override || wasMovedAway,
+        is_skipped: wasMovedAway || activeSkips.has(skipKey),
         created_at: '',
       }
     })
-  }, [generatedCells, localOverrides, activeSkips, id])
+
+    return [...baseCells, ...movedTargets]
+  }, [generatedCells, localOverrides, activeSkips, localMoves, id])
 
   // Inventory deltas (adjusted for skipped cells)
   const inventoryDeltas = useMemo(() => {
@@ -177,6 +208,24 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
       return next
     })
   }, [savedSkipSet])
+
+  const handleCellMove = useCallback((moves: CellMoveData[]) => {
+    setLocalMoves((prev) => {
+      const next = [...prev]
+      for (const move of moves) {
+        // If this cell was already moved before, update its destination instead of adding a new entry
+        const existingIdx = next.findIndex(
+          (m) => m.cycleDrugId === move.cycleDrugId && m.fromWeek === move.fromWeek && m.fromDay === move.fromDay
+        )
+        if (existingIdx >= 0) {
+          next[existingIdx] = move
+        } else {
+          next.push(move)
+        }
+      }
+      return next
+    })
+  }, [])
 
   const handleWeekChange = useCallback((delta: number) => {
     if (!cycle) return
@@ -436,6 +485,7 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
           }}
           startDate={cycle.start_date}
           onSkipToggle={isEditable ? handleSkipToggle : undefined}
+          onCellMove={isEditable ? handleCellMove : undefined}
         />
       </div>
 
