@@ -11,12 +11,13 @@ const HEADER_FILL: ExcelJS.FillPattern = {
 const HEADER_FONT: Partial<ExcelJS.Font> = {
   name: 'Calibri',
   bold: true,
-  size: 10,
+  size: 12,
   color: { argb: 'FFFFFFFF' },
 }
-const NAME_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF1A1A1A' } }
-const DOSE_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 11, color: { argb: 'FF888888' } }
-const BODY_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 11 }
+const WEEK_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 11, bold: true }
+const NAME_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF1A1A1A' } }
+const DOSE_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 10, color: { argb: 'FF888888' } }
+const BODY_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 10 }
 const THIN_BORDER: Partial<ExcelJS.Borders> = {
   top: { style: 'thin' },
   left: { style: 'thin' },
@@ -102,7 +103,7 @@ export function exportScheduleToXLSX(
 
     // Week column
     const weekCell = row.getCell(1)
-    weekCell.font = { ...BODY_FONT, bold: true }
+    weekCell.font = WEEK_FONT
     weekCell.alignment = { horizontal: 'center', vertical: 'middle' }
     weekCell.border = THIN_BORDER
   }
