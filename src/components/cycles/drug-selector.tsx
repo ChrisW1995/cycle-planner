@@ -265,7 +265,11 @@ export function DrugSelector({ open, onClose, onAdd, onReplace, totalWeeks, exis
                         {items.map((d) => (
                           <SelectItem key={d.id} value={d.id}>
                             {d.name}{d.ester_type ? ` (${d.ester_type === 'Long' ? '長效' : d.ester_type === 'Short' ? '短效' : 'E3D'})` : ''}
-                            {d.inventory_count <= 1 ? ' ⚠️' : ''}
+                            {(() => {
+                              const t = typeof window !== 'undefined' ? parseInt(localStorage.getItem('lowStockThreshold') ?? '') : NaN
+                              const threshold = isNaN(t) ? 1 : t
+                              return d.inventory_count <= threshold ? ' ⚠️' : ''
+                            })()}
                           </SelectItem>
                         ))}
                       </SelectGroup>
