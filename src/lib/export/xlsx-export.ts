@@ -11,13 +11,13 @@ const HEADER_FILL: ExcelJS.FillPattern = {
 const HEADER_FONT: Partial<ExcelJS.Font> = {
   name: 'Calibri',
   bold: true,
-  size: 12,
+  size: 16,
   color: { argb: 'FFFFFFFF' },
 }
-const WEEK_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 11, bold: true }
-const NAME_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF1A1A1A' } }
-const DOSE_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 10, color: { argb: 'FF888888' } }
-const BODY_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 10 }
+const WEEK_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 14, bold: true }
+const NAME_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 13, bold: true, color: { argb: 'FF1A1A1A' } }
+const DOSE_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 13, color: { argb: 'FF888888' } }
+const BODY_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 13 }
 const THIN_BORDER: Partial<ExcelJS.Borders> = {
   top: { style: 'thin' },
   left: { style: 'thin' },
@@ -71,7 +71,7 @@ export function exportScheduleToXLSX(
   // Header row
   const dayLabels = getDayLabels(startDate)
   const headerRow = ws.addRow(['Week', ...dayLabels])
-  headerRow.height = 24
+  headerRow.height = 30
   headerRow.eachCell((cell) => {
     cell.fill = HEADER_FILL
     cell.font = HEADER_FONT
@@ -79,7 +79,7 @@ export function exportScheduleToXLSX(
     cell.border = THIN_BORDER
   })
 
-  const LINE_HEIGHT = 16
+  const LINE_HEIGHT = 20
 
   // Data rows
   for (let week = 1; week <= totalWeeks; week++) {
@@ -126,7 +126,7 @@ export function exportScheduleToXLSX(
     ws.addRow([]) // blank row
 
     const statsHeaderRow = ws.addRow(['Drug Stats', '', ''])
-    statsHeaderRow.getCell(1).font = { bold: true, size: 11 }
+    statsHeaderRow.getCell(1).font = { bold: true, size: 14 }
 
     const statsColHeader = ws.addRow(['藥物', '需求量'])
     statsColHeader.eachCell((cell) => {
