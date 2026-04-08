@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useMemo } from 'react'
+import React, { use, useMemo } from 'react'
 import { useCycle, useCycleCells, useCycles, useUpdateCycleStatus } from '@/hooks/use-cycles'
 import { useDrugs } from '@/hooks/use-drugs'
 import { generateAllCells } from '@/lib/calculations/schedule-engine'
@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ArrowLeft, FileSpreadsheet, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { formatOralInventory, getDayLabels } from '@/lib/utils'
+import { formatOralInventory, getDayLabels, groupDeltasByCategory } from '@/lib/utils'
 import type { CycleCell } from '@/types'
 
 
@@ -206,22 +206,31 @@ export default function ExportPage({ params }: { params: Promise<{ id: string }>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {inventoryDeltas.map((d) => {
-                    const isOral = d.category === 'Oral' || d.category === 'PCT'
-                    const isE3D = d.ester_type === 'E3D'
-                    return (
-                      <TableRow key={d.drug_id}>
-                        <TableCell className="font-medium">{d.drug_name}</TableCell>
-                        <TableCell className="text-right">
-                          {isOral
-                            ? `${Math.round(d.needed_ml)} 顆 (${formatOralInventory(Math.round(d.needed_ml), d.tabs_per_box)})`
-                            : isE3D
-                              ? `${d.needed_vials} 瓶/劑`
-                              : `${d.needed_ml} ml (${d.needed_vials} 瓶)`}
+                  {groupDeltasByCategory(inventoryDeltas).map((group) => (
+                    <React.Fragment key={group.category}>
+                      <TableRow className="bg-muted/50">
+                        <TableCell colSpan={2} className="text-center font-semibold text-muted-foreground py-1.5">
+                          {group.label}
                         </TableCell>
                       </TableRow>
-                    )
-                  })}
+                      {group.items.map((d) => {
+                        const isOral = d.category === 'Oral' || d.category === 'PCT'
+                        const isE3D = d.ester_type === 'E3D'
+                        return (
+                          <TableRow key={d.drug_id}>
+                            <TableCell className="font-medium">{d.drug_name}</TableCell>
+                            <TableCell className="text-right">
+                              {isOral
+                                ? `${Math.round(d.needed_ml)} 顆 (${formatOralInventory(Math.round(d.needed_ml), d.tabs_per_box)})`
+                                : isE3D
+                                  ? `${d.needed_vials} 瓶/劑`
+                                  : `${d.needed_ml} ml (${d.needed_vials} 瓶)`}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </React.Fragment>
+                  ))}
                 </TableBody>
               </Table>
             </div>
