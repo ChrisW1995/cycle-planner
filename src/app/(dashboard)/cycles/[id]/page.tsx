@@ -323,7 +323,11 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
                     {cd.drug?.name}
                   </Link>
                   <span className="text-muted-foreground">
-                    {cd.weekly_dose ? `${cd.weekly_dose}mg/wk` : `${cd.daily_dose}mg/day`}
+                    {cd.injection_ml
+                      ? `${cd.injection_ml}ml × ${cd.total_injections}次`
+                      : cd.weekly_dose
+                        ? `${cd.weekly_dose}mg/wk`
+                        : `${cd.daily_dose}mg/day`}
                   </span>
                   <span className="text-muted-foreground">
                     W{cd.start_week}-{cd.end_week}

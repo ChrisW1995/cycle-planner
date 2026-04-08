@@ -31,6 +31,7 @@ export function DrugSelector({ open, onClose, onAdd, totalWeeks, existingDrugIds
   const [weeklyDose, setWeeklyDose] = useState('')
   const [dailyDose, setDailyDose] = useState('')
   const [vialMl, setVialMl] = useState('')
+  const [vialCount, setVialCount] = useState('1')
   const [totalInjections, setTotalInjections] = useState('')
   const [startWeek, setStartWeek] = useState('1')
   const [endWeek, setEndWeek] = useState(totalWeeks.toString())
@@ -41,12 +42,16 @@ export function DrugSelector({ open, onClose, onAdd, totalWeeks, existingDrugIds
   const isOral = selectedDrug?.primary_category === 'Oral' || selectedDrug?.primary_category === 'PCT'
 
   // E3D: auto-calculate ml per injection and end_week
+  const e3dTotalMl = (() => {
+    if (!isE3D || !vialMl || !vialCount) return null
+    return parseFloat(vialMl) * (parseInt(vialCount) || 1)
+  })()
+
   const e3dMlPerInjection = (() => {
-    if (!isE3D || !vialMl || !totalInjections) return null
-    const total = parseFloat(vialMl)
+    if (!e3dTotalMl || !totalInjections) return null
     const count = parseInt(totalInjections)
-    if (!total || !count || count <= 0) return null
-    return Math.floor((total / count) * 100) / 100
+    if (!count || count <= 0) return null
+    return Math.floor((e3dTotalMl / count) * 100) / 100
   })()
 
   const e3dEndWeek = (() => {
@@ -85,6 +90,7 @@ export function DrugSelector({ open, onClose, onAdd, totalWeeks, existingDrugIds
     setWeeklyDose('')
     setDailyDose('')
     setVialMl('')
+    setVialCount('1')
     setTotalInjections('')
     setStartWeek('1')
     setEndWeek(totalWeeks.toString())
@@ -103,9 +109,8 @@ export function DrugSelector({ open, onClose, onAdd, totalWeeks, existingDrugIds
       preview = `每次注射 ${ml}ml (隔日，跨兩週交替)`
     }
   }
-  if (selectedDrug && isE3D && e3dMlPerInjection && totalInjections) {
+  if (selectedDrug && isE3D && e3dMlPerInjection && e3dTotalMl && totalInjections) {
     const count = parseInt(totalInjections)
-    const totalMl = parseFloat(vialMl)
     // Generate day pattern preview
     const absStart = (parseInt(startWeek) - 1) * 7 + 1
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -123,7 +128,8 @@ export function DrugSelector({ open, onClose, onAdd, totalWeeks, existingDrugIds
       }
     }
     if (count > 10) pattern.push('...')
-    preview = `${totalMl}ml ÷ ${count} 次 = 每次 ${e3dMlPerInjection}ml\n${pattern.join(' → ')}`
+    const vials = parseInt(vialCount) || 1
+    preview = `${vials} 瓶 × ${vialMl}ml = ${e3dTotalMl}ml ÷ ${count} 次 = 每次 ${e3dMlPerInjection}ml\n${pattern.join(' → ')}`
   }
   if (selectedDrug && isOral && dailyDose) {
     const tabs = Math.round((parseFloat(dailyDose) / selectedDrug.concentration) * 10) / 10
@@ -203,15 +209,25 @@ export function DrugSelector({ open, onClose, onAdd, totalWeeks, existingDrugIds
 
           {isE3D && (
             <>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-2">
-                  <Label>一瓶總量 (ml) *</Label>
+                  <Label>每瓶 (ml) *</Label>
                   <Input
                     type="number"
                     step="any"
                     value={vialMl}
                     onChange={(e) => setVialMl(e.target.value)}
                     placeholder="e.g. 1"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>瓶數 *</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={vialCount}
+                    onChange={(e) => setVialCount(e.target.value)}
+                    placeholder="e.g. 2"
                   />
                 </div>
                 <div className="space-y-2">
