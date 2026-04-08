@@ -97,11 +97,26 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
   const activeSkips = localSkips ?? savedSkipSet
 
   // Generate cells from cycle drugs
+  // Exclude move-related saved cells so generatedCells stays clean;
+  // all move logic is handled by localMoves + displayCells
   const generatedCells = useMemo(() => {
     if (!cycle?.cycle_drugs) return []
-    const overrides = savedCells?.filter((c) => c.is_manual_override || c.is_skipped) || []
+
+    // Build set of move-related cell keys to exclude from overrides
+    const moveRelatedKeys = new Set<string>()
+    for (const move of savedMovesList) {
+      moveRelatedKeys.add(`${move.cycleDrugId}-${move.fromWeek}-${move.fromDay}`)
+      moveRelatedKeys.add(`${move.cycleDrugId}-${move.toWeek}-${move.toDay}`)
+    }
+
+    const overrides = savedCells?.filter((c) => {
+      if (!c.is_manual_override && !c.is_skipped) return false
+      const key = `${c.cycle_drug_id}-${c.week_number}-${c.day_of_week}`
+      return !moveRelatedKeys.has(key)
+    }) || []
+
     return generateAllCells(cycle.cycle_drugs as any, cycle.total_weeks, overrides)
-  }, [cycle, savedCells])
+  }, [cycle, savedCells, savedMovesList])
 
   // Convert generated cells to CycleCell-like objects for the grid
   // Moved sources are excluded from display (invisible, not strikethrough)
