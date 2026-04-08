@@ -1,4 +1,4 @@
-import type { CycleDrug, Drug, DrugInventoryDelta } from '@/types'
+import type { CycleDrug, CycleCell, Drug, DrugInventoryDelta } from '@/types'
 
 interface DrugWithInventory {
   id: string
@@ -180,4 +180,53 @@ export function calculateWeeklyUsage(
   }
 
   return { totalMl: 0, totalMg: 0 }
+}
+
+/**
+ * Adjust inventory deltas by subtracting skipped cells
+ */
+export function adjustDeltasForSkippedCells(
+  baseDeltas: DrugInventoryDelta[],
+  cells: CycleCell[],
+  cycleDrugs: CycleDrugWithDrug[]
+): DrugInventoryDelta[] {
+  // Sum skipped amounts per drug_id
+  const skippedByDrugId = new Map<string, number>()
+
+  for (const cell of cells) {
+    if (!cell.is_skipped) continue
+    const cd = cycleDrugs.find((d) => d.id === cell.cycle_drug_id)
+    if (!cd) continue
+
+    const drugId = cd.drug_id
+    const existing = skippedByDrugId.get(drugId) || 0
+
+    if (cd.drug?.primary_category === 'Injectable') {
+      skippedByDrugId.set(drugId, existing + (cell.ml_amount || 0))
+    } else {
+      // Oral/PCT: count skipped tablets
+      const tabletsPerDay = (cd.daily_dose || 0) / (cd.drug?.concentration || 1)
+      skippedByDrugId.set(drugId, existing + tabletsPerDay)
+    }
+  }
+
+  return baseDeltas.map((d) => {
+    const skippedAmount = skippedByDrugId.get(d.drug_id) || 0
+    if (skippedAmount === 0) return d
+
+    const adjustedNeededMl = Math.round((d.needed_ml - skippedAmount) * 100) / 100
+    const isOral = d.category === 'Oral' || d.category === 'PCT'
+    const adjustedUnits = isOral
+      ? calculateBoxesNeeded(adjustedNeededMl, d.tabs_per_box)
+      : calculateVialsNeeded(adjustedNeededMl)
+
+    return {
+      ...d,
+      needed_ml: adjustedNeededMl,
+      needed_vials: adjustedUnits,
+      deficit: isOral
+        ? d.current_inventory - Math.round(adjustedNeededMl)
+        : d.current_inventory - adjustedUnits,
+    }
+  })
 }

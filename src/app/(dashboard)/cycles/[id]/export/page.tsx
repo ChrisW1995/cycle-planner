@@ -13,10 +13,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ArrowLeft, FileSpreadsheet, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { formatOralInventory } from '@/lib/utils'
+import { formatOralInventory, getDayLabels } from '@/lib/utils'
 import type { CycleCell } from '@/types'
 
-const DAY_LABELS = ['一', '二', '三', '四', '五', '六', '日']
 
 export default function ExportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -32,8 +31,8 @@ export default function ExportPage({ params }: { params: Promise<{ id: string }>
     // Use saved cells if available, otherwise generate
     if (savedCells && savedCells.length > 0) return savedCells
 
-    const manualOverrides = savedCells?.filter((c) => c.is_manual_override) || []
-    const generated = generateAllCells(cycle.cycle_drugs as any, cycle.total_weeks, manualOverrides)
+    const overrides = savedCells?.filter((c) => c.is_manual_override || c.is_skipped) || []
+    const generated = generateAllCells(cycle.cycle_drugs as any, cycle.total_weeks, overrides)
     return generated.map((cell, i) => ({
       id: `gen-${i}`,
       cycle_id: id,
@@ -43,6 +42,7 @@ export default function ExportPage({ params }: { params: Promise<{ id: string }>
       display_value: cell.display_value,
       ml_amount: cell.ml_amount,
       is_manual_override: cell.is_manual_override,
+      is_skipped: cell.is_skipped ?? false,
       created_at: '',
     }))
   }, [cycle, savedCells, id])
@@ -141,7 +141,7 @@ export default function ExportPage({ params }: { params: Promise<{ id: string }>
             <thead>
               <tr>
                 <th className="border border-border px-3 py-2 bg-muted text-left font-medium">Week</th>
-                {DAY_LABELS.map((day, i) => (
+                {getDayLabels(cycle?.start_date).map((day, i) => (
                   <th key={i} className="border border-border px-3 py-2 bg-muted text-center font-medium min-w-[120px]">
                     {day}
                   </th>

@@ -15,6 +15,7 @@ interface CellData {
   display_value: string
   ml_amount: number | null
   is_manual_override: boolean
+  is_skipped: boolean
 }
 
 /** Strip trailing concentration number from drug name for compact display */
@@ -53,6 +54,7 @@ export function generateCellsForDrug(
           display_value: `${shortName(drug.name, drug.concentration)} ${mlPerInjection}ml`,
           ml_amount: mlPerInjection,
           is_manual_override: false,
+          is_skipped: false,
         })
         // Day 4 (Thursday)
         cells.push({
@@ -62,6 +64,7 @@ export function generateCellsForDrug(
           display_value: `${shortName(drug.name, drug.concentration)} ${mlPerInjection}ml`,
           ml_amount: mlPerInjection,
           is_manual_override: false,
+          is_skipped: false,
         })
       }
     } else if (drug.ester_type === 'Short') {
@@ -82,6 +85,7 @@ export function generateCellsForDrug(
               display_value: `${shortName(drug.name, drug.concentration)} ${mlPerInjection}ml`,
               ml_amount: mlPerInjection,
               is_manual_override: false,
+              is_skipped: false,
             })
           }
         }
@@ -97,6 +101,7 @@ export function generateCellsForDrug(
               display_value: `${shortName(drug.name, drug.concentration)} ${mlPerInjection}ml`,
               ml_amount: mlPerInjection,
               is_manual_override: false,
+              is_skipped: false,
             })
           }
         }
@@ -118,6 +123,7 @@ export function generateCellsForDrug(
           display_value: `${shortName(drug.name, drug.concentration)} ${mlPerInjection}ml`,
           ml_amount: mlPerInjection,
           is_manual_override: false,
+          is_skipped: false,
         })
         count++
       }
@@ -138,6 +144,7 @@ export function generateCellsForDrug(
           display_value: `${shortName(drug.name, drug.concentration)} ${cycleDrug.daily_dose}mg (${tabletsPerDay})`,
           ml_amount: null,
           is_manual_override: false,
+          is_skipped: false,
         })
       }
     }
@@ -175,7 +182,8 @@ export function generateAllCells(
           ...allCells[idx],
           display_value: override.display_value || allCells[idx].display_value,
           ml_amount: override.ml_amount,
-          is_manual_override: true,
+          is_manual_override: override.is_manual_override,
+          is_skipped: override.is_skipped ?? false,
         }
       }
     }

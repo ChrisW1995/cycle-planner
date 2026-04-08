@@ -1,8 +1,7 @@
 import ExcelJS from 'exceljs'
-import { formatOralInventory } from '@/lib/utils'
+import { formatOralInventory, getDayLabels } from '@/lib/utils'
 import type { CycleCell, DrugInventoryDelta } from '@/types'
 
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 const HEADER_FILL: ExcelJS.FillPattern = {
   type: 'pattern',
@@ -28,7 +27,8 @@ export function exportScheduleToXLSX(
   personName: string,
   totalWeeks: number,
   cells: CycleCell[],
-  deltas?: DrugInventoryDelta[]
+  deltas?: DrugInventoryDelta[],
+  startDate?: string | null
 ) {
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet(cycleName || 'Cycle')
@@ -36,6 +36,7 @@ export function exportScheduleToXLSX(
   // Build cell map
   const cellMap = new Map<string, string[]>()
   for (const cell of cells) {
+    if (cell.is_skipped) continue
     const key = `${cell.week_number}-${cell.day_of_week}`
     if (!cellMap.has(key)) cellMap.set(key, [])
     if (cell.display_value) cellMap.get(key)!.push(cell.display_value)
@@ -43,7 +44,8 @@ export function exportScheduleToXLSX(
 
   // --- Schedule Table ---
   // Header row
-  const headerRow = ws.addRow(['Week', ...DAY_LABELS])
+  const dayLabels = getDayLabels(startDate)
+  const headerRow = ws.addRow(['Week', ...dayLabels])
   headerRow.height = 24
   headerRow.eachCell((cell) => {
     cell.fill = HEADER_FILL
@@ -75,7 +77,7 @@ export function exportScheduleToXLSX(
   // Auto-fit column widths
   ws.getColumn(1).width = 12
   for (let c = 2; c <= 8; c++) {
-    let maxLen = DAY_LABELS[c - 2].length
+    let maxLen = dayLabels[c - 2].length
     ws.getColumn(c).eachCell((cell) => {
       const val = cell.value?.toString() || ''
       for (const line of val.split('\n')) {

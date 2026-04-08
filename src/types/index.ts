@@ -138,6 +138,7 @@ export interface CycleCell {
   display_value: string | null
   ml_amount: number | null
   is_manual_override: boolean
+  is_skipped: boolean
   created_at: string
 }
 

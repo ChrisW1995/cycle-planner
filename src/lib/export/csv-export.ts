@@ -1,12 +1,12 @@
 import Papa from 'papaparse'
+import { getDayLabels } from '@/lib/utils'
 import type { CycleCell } from '@/types'
-
-const DAY_LABELS = ['一', '二', '三', '四', '五', '六', '日']
 
 export function exportScheduleToCSV(
   cycleName: string,
   totalWeeks: number,
-  cells: CycleCell[]
+  cells: CycleCell[],
+  startDate?: string | null
 ): string {
   // Build cell map
   const cellMap = new Map<string, string[]>()
@@ -20,7 +20,7 @@ export function exportScheduleToCSV(
   const rows: string[][] = []
 
   // Header
-  rows.push(['', ...DAY_LABELS])
+  rows.push(['', ...getDayLabels(startDate)])
 
   // Data rows
   for (let week = 1; week <= totalWeeks; week++) {

@@ -1,16 +1,16 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { formatOralInventory } from '@/lib/utils'
+import { formatOralInventory, getDayLabels } from '@/lib/utils'
 import type { CycleCell, DrugInventoryDelta } from '@/types'
 
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 export function exportScheduleToPDF(
   cycleName: string,
   personName: string,
   totalWeeks: number,
   cells: CycleCell[],
-  deltas?: DrugInventoryDelta[]
+  deltas?: DrugInventoryDelta[],
+  startDate?: string | null
 ) {
   const doc = new jsPDF({
     orientation: 'landscape',
@@ -21,6 +21,7 @@ export function exportScheduleToPDF(
   // Build cell map
   const cellMap = new Map<string, string[]>()
   for (const cell of cells) {
+    if (cell.is_skipped) continue
     const key = `${cell.week_number}-${cell.day_of_week}`
     if (!cellMap.has(key)) cellMap.set(key, [])
     if (cell.display_value) cellMap.get(key)!.push(cell.display_value)
@@ -31,7 +32,7 @@ export function exportScheduleToPDF(
   doc.text(`${personName} - ${cycleName || 'Cycle'}`, 14, 15)
 
   // Schedule table
-  const headers = ['Week', ...DAY_LABELS]
+  const headers = ['Week', ...getDayLabels(startDate)]
   const body: string[][] = []
 
   for (let week = 1; week <= totalWeeks; week++) {

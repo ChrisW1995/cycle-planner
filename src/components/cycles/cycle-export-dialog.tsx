@@ -4,10 +4,10 @@ import { useMemo } from 'react'
 import { useCycle, useCycleCells } from '@/hooks/use-cycles'
 import { useDrugs } from '@/hooks/use-drugs'
 import { generateAllCells } from '@/lib/calculations/schedule-engine'
-import { calculateInventoryDeltas } from '@/lib/calculations/vial-calculator'
+import { calculateInventoryDeltas, adjustDeltasForSkippedCells } from '@/lib/calculations/vial-calculator'
 import { exportScheduleToXLSX } from '@/lib/export/xlsx-export'
 import { exportScheduleToPDF } from '@/lib/export/pdf-export'
-import { formatOralInventory } from '@/lib/utils'
+import { formatOralInventory, getDayLabels } from '@/lib/utils'
 import { statusLabels } from '@/lib/constants/cycle-status'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -15,7 +15,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { FileSpreadsheet, FileText, XIcon } from 'lucide-react'
 import type { CycleCell } from '@/types'
 
-const DAY_LABELS = ['一', '二', '三', '四', '五', '六', '日']
 
 interface CycleExportDialogProps {
   id: string
@@ -31,8 +30,8 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
   const displayCells: CycleCell[] = useMemo(() => {
     if (!cycle?.cycle_drugs) return []
     if (savedCells && savedCells.length > 0) return savedCells
-    const manualOverrides = savedCells?.filter((c) => c.is_manual_override) || []
-    const generated = generateAllCells(cycle.cycle_drugs as any, cycle.total_weeks, manualOverrides)
+    const overrides = savedCells?.filter((c) => c.is_manual_override || c.is_skipped) || []
+    const generated = generateAllCells(cycle.cycle_drugs as any, cycle.total_weeks, overrides)
     return generated.map((cell, i) => ({
       id: `gen-${i}`,
       cycle_id: id,
@@ -42,6 +41,7 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
       display_value: cell.display_value,
       ml_amount: cell.ml_amount,
       is_manual_override: cell.is_manual_override,
+      is_skipped: cell.is_skipped ?? false,
       created_at: '',
     }))
   }, [cycle, savedCells, id])
@@ -49,6 +49,7 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
   const cellMap = useMemo(() => {
     const map = new Map<string, string[]>()
     for (const cell of displayCells) {
+      if (cell.is_skipped) continue
       const key = `${cell.week_number}-${cell.day_of_week}`
       if (!map.has(key)) map.set(key, [])
       if (cell.display_value) map.get(key)!.push(cell.display_value)
@@ -58,19 +59,20 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
 
   const inventoryDeltas = useMemo(() => {
     if (!cycle?.cycle_drugs) return []
-    return calculateInventoryDeltas(cycle.cycle_drugs as any, allDrugs as any)
-  }, [cycle, allDrugs])
+    const base = calculateInventoryDeltas(cycle.cycle_drugs as any, allDrugs as any)
+    return adjustDeltasForSkippedCells(base, displayCells, cycle.cycle_drugs as any)
+  }, [cycle, allDrugs, displayCells])
 
   const handleXLSXExport = () => {
     if (!cycle) return
     const personName = (cycle as any).person?.nickname || 'Unknown'
-    exportScheduleToXLSX(cycle.name || `${personName} Cycle`, personName, cycle.total_weeks, displayCells, inventoryDeltas)
+    exportScheduleToXLSX(cycle.name || `${personName} Cycle`, personName, cycle.total_weeks, displayCells, inventoryDeltas, cycle.start_date)
   }
 
   const handlePDFExport = () => {
     if (!cycle) return
     const personName = (cycle as any).person?.nickname || 'Unknown'
-    exportScheduleToPDF(cycle.name || 'Cycle', personName, cycle.total_weeks, displayCells, inventoryDeltas)
+    exportScheduleToPDF(cycle.name || 'Cycle', personName, cycle.total_weeks, displayCells, inventoryDeltas, cycle.start_date)
   }
 
   return (
@@ -114,7 +116,7 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
                 <thead>
                   <tr>
                     <th className="border border-border px-3 py-2 bg-muted text-left font-medium whitespace-nowrap">Week</th>
-                    {DAY_LABELS.map((day, i) => (
+                    {getDayLabels(cycle.start_date).map((day, i) => (
                       <th key={i} className="border border-border px-3 py-2 bg-muted text-center font-medium min-w-[100px]">
                         {day}
                       </th>

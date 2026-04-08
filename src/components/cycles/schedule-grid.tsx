@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { cn } from '@/lib/utils'
+import { cn, getDayLabels } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -9,7 +9,6 @@ import { Pencil } from 'lucide-react'
 import type { CycleCell, CycleDrug, Drug } from '@/types'
 import { getExpectedMl } from '@/lib/calculations/schedule-engine'
 
-const DAY_LABELS = ['一', '二', '三', '四', '五', '六', '日']
 
 interface CycleDrugWithDrug extends CycleDrug {
   drug: Drug
@@ -19,9 +18,11 @@ interface ScheduleGridProps {
   totalWeeks: number
   cells: CycleCell[]
   cycleDrugs: CycleDrugWithDrug[]
-  inventoryDeficits: Map<string, number> // drug_id → deficit (negative = shortage)
+  inventoryDeficits: Map<string, number>
   isAdmin: boolean
+  startDate?: string | null
   onCellEdit?: (cellKey: string, value: string, mlAmount: number | null) => void
+  onSkipToggle?: (cycleDrugId: string, weekNumber: number, dayOfWeek: number) => void
 }
 
 export function ScheduleGrid({
@@ -30,8 +31,11 @@ export function ScheduleGrid({
   cycleDrugs,
   inventoryDeficits,
   isAdmin,
+  startDate,
   onCellEdit,
+  onSkipToggle,
 }: ScheduleGridProps) {
+  const dayLabels = getDayLabels(startDate)
   // Group cells by week+day
   const cellMap = useMemo(() => {
     const map = new Map<string, CycleCell[]>()
@@ -69,7 +73,7 @@ export function ScheduleGrid({
             <th className="sticky left-0 z-10 bg-card border border-border px-3 py-2 text-left font-medium min-w-[80px]">
               Week
             </th>
-            {DAY_LABELS.map((day, i) => (
+            {dayLabels.map((day, i) => (
               <th
                 key={i}
                 className="border border-border px-3 py-2 text-center font-medium min-w-[140px]"
@@ -102,6 +106,7 @@ export function ScheduleGrid({
                       lowInventoryDrugIds={lowInventoryDrugIds}
                       isAdmin={isAdmin}
                       onEdit={onCellEdit}
+                      onSkipToggle={onSkipToggle}
                     />
                   )
                 })}
@@ -122,6 +127,7 @@ interface ScheduleCellProps {
   lowInventoryDrugIds: Set<string>
   isAdmin: boolean
   onEdit?: (cellKey: string, value: string, mlAmount: number | null) => void
+  onSkipToggle?: (cycleDrugId: string, weekNumber: number, dayOfWeek: number) => void
 }
 
 function ScheduleCell({
@@ -132,6 +138,7 @@ function ScheduleCell({
   lowInventoryDrugIds,
   isAdmin,
   onEdit,
+  onSkipToggle,
 }: ScheduleCellProps) {
   const [editOpen, setEditOpen] = useState(false)
   const [editValue, setEditValue] = useState('')
@@ -139,13 +146,15 @@ function ScheduleCell({
 
   const hasCells = cells.length > 0
 
-  // Check for issues in this cell
+  // Check for issues (only non-skipped cells)
   const hasInventoryWarning = cells.some((c) => {
+    if (c.is_skipped) return false
     const cd = cycleDrugs.find((d) => d.id === c.cycle_drug_id)
     return cd && lowInventoryDrugIds.has(cd.drug_id)
   })
 
   const hasMlMismatch = cells.some((c) => {
+    if (c.is_skipped) return false
     if (!c.is_manual_override || c.ml_amount == null) return false
     const expected = expectedMlMap.get(c.cycle_drug_id)
     return expected != null && Math.abs(c.ml_amount - expected) > 0.001
@@ -165,10 +174,20 @@ function ScheduleCell({
           <div
             key={cell.id || `${cellKey}-${i}`}
             className={cn(
-              'text-xs leading-tight',
-              cell.is_manual_override && 'text-yellow-500',
-              hasInventoryWarning && 'text-red-400'
+              'text-xs leading-tight select-none',
+              cell.is_skipped
+                ? 'line-through opacity-40'
+                : cn(
+                    cell.is_manual_override && 'text-yellow-500',
+                    hasInventoryWarning && 'text-red-400'
+                  ),
+              isAdmin && 'cursor-pointer hover:opacity-70 transition-opacity'
             )}
+            onClick={() => {
+              if (isAdmin && onSkipToggle) {
+                onSkipToggle(cell.cycle_drug_id, cell.week_number, cell.day_of_week)
+              }
+            }}
           >
             {cell.display_value}
           </div>

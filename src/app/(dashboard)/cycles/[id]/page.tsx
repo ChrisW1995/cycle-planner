@@ -9,7 +9,7 @@ import { DrugSelector } from '@/components/cycles/drug-selector'
 import { CalculationSummary } from '@/components/cycles/calculation-summary'
 import { CycleExportDialog } from '@/components/cycles/cycle-export-dialog'
 import { generateAllCells } from '@/lib/calculations/schedule-engine'
-import { calculateInventoryDeltas } from '@/lib/calculations/vial-calculator'
+import { calculateInventoryDeltas, adjustDeltasForSkippedCells } from '@/lib/calculations/vial-calculator'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -42,13 +42,28 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [localOverrides, setLocalOverrides] = useState<Map<string, { value: string; ml: number | null }>>(new Map())
+  const [localSkips, setLocalSkips] = useState<Set<string> | null>(null)
   const [localNotes, setLocalNotes] = useState<string | null>(null)
+
+  // Initialize skip state from saved cells (once on load)
+  const savedSkipSet = useMemo(() => {
+    const set = new Set<string>()
+    if (savedCells) {
+      for (const c of savedCells) {
+        if (c.is_skipped) set.add(`${c.cycle_drug_id}-${c.week_number}-${c.day_of_week}`)
+      }
+    }
+    return set
+  }, [savedCells])
+
+  // Use saved skips until user makes local changes
+  const activeSkips = localSkips ?? savedSkipSet
 
   // Generate cells from cycle drugs
   const generatedCells = useMemo(() => {
     if (!cycle?.cycle_drugs) return []
-    const manualOverrides = savedCells?.filter((c) => c.is_manual_override) || []
-    return generateAllCells(cycle.cycle_drugs as any, cycle.total_weeks, manualOverrides)
+    const overrides = savedCells?.filter((c) => c.is_manual_override || c.is_skipped) || []
+    return generateAllCells(cycle.cycle_drugs as any, cycle.total_weeks, overrides)
   }, [cycle, savedCells])
 
   // Convert generated cells to CycleCell-like objects for the grid
@@ -56,6 +71,7 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
     return generatedCells.map((cell, i) => {
       const key = `${cell.week_number}-${cell.day_of_week}`
       const override = localOverrides.get(`${key}-${cell.cycle_drug_id}`)
+      const skipKey = `${cell.cycle_drug_id}-${cell.week_number}-${cell.day_of_week}`
       return {
         id: `gen-${i}`,
         cycle_id: id,
@@ -65,16 +81,18 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
         display_value: override?.value || cell.display_value,
         ml_amount: override?.ml ?? cell.ml_amount,
         is_manual_override: cell.is_manual_override || !!override,
+        is_skipped: activeSkips.has(skipKey),
         created_at: '',
       }
     })
-  }, [generatedCells, localOverrides, id])
+  }, [generatedCells, localOverrides, activeSkips, id])
 
-  // Inventory deltas
+  // Inventory deltas (adjusted for skipped cells)
   const inventoryDeltas = useMemo(() => {
     if (!cycle?.cycle_drugs) return []
-    return calculateInventoryDeltas(cycle.cycle_drugs as any, allDrugs as any)
-  }, [cycle, allDrugs])
+    const base = calculateInventoryDeltas(cycle.cycle_drugs as any, allDrugs as any)
+    return adjustDeltasForSkippedCells(base, displayCells, cycle.cycle_drugs as any)
+  }, [cycle, allDrugs, displayCells])
 
   const inventoryDeficitsMap = useMemo(() => {
     const map = new Map<string, number>()
@@ -103,9 +121,23 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
       display_value: c.display_value,
       ml_amount: c.ml_amount,
       is_manual_override: c.is_manual_override,
+      is_skipped: c.is_skipped,
     }))
     saveCells.mutate({ cycle_id: id, cells: cellsToSave })
   }, [displayCells, id, saveCells])
+
+  const handleSkipToggle = useCallback((cycleDrugId: string, weekNumber: number, dayOfWeek: number) => {
+    const skipKey = `${cycleDrugId}-${weekNumber}-${dayOfWeek}`
+    setLocalSkips((prev) => {
+      const next = new Set(prev ?? savedSkipSet)
+      if (next.has(skipKey)) {
+        next.delete(skipKey)
+      } else {
+        next.add(skipKey)
+      }
+      return next
+    })
+  }, [savedSkipSet])
 
   const handleWeekChange = useCallback((delta: number) => {
     if (!cycle) return
@@ -314,6 +346,8 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
               return next
             })
           }}
+          startDate={cycle.start_date}
+          onSkipToggle={isEditable ? handleSkipToggle : undefined}
         />
       </div>
 
