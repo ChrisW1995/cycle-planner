@@ -5,7 +5,7 @@ import { cn, getDayLabels } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Pencil } from 'lucide-react'
+import { Pencil, TriangleAlert } from 'lucide-react'
 import type { CycleCell, CycleDrug, Drug } from '@/types'
 import { getExpectedMl } from '@/lib/calculations/schedule-engine'
 
@@ -145,6 +145,7 @@ function ScheduleCell({
   const [editMl, setEditMl] = useState('')
 
   const hasCells = cells.length > 0
+  const hasSkipped = cells.some((c) => c.is_skipped)
 
   // Check for issues (only non-skipped cells)
   const hasInventoryWarning = cells.some((c) => {
@@ -163,12 +164,15 @@ function ScheduleCell({
   return (
     <td
       className={cn(
-        'border border-border px-2 py-1.5 align-top min-h-[60px] transition-colors',
+        'relative border border-border px-2 py-1.5 align-top min-h-[60px] transition-colors',
         hasInventoryWarning && 'bg-red-500/5',
         hasMlMismatch && 'bg-yellow-500/10',
         !hasCells && 'bg-transparent'
       )}
     >
+      {hasSkipped && (
+        <TriangleAlert className="absolute top-1 right-1 h-3 w-3 text-yellow-500/50" />
+      )}
       <div className="space-y-0.5">
         {cells.map((cell, i) => (
           <div
