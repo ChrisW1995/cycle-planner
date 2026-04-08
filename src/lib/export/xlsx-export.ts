@@ -14,12 +14,36 @@ const HEADER_FONT: Partial<ExcelJS.Font> = {
   size: 10,
   color: { argb: 'FFFFFFFF' },
 }
+const NAME_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 9, bold: true, color: { argb: 'FF1A1A1A' } }
+const DOSE_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 9, color: { argb: 'FF888888' } }
 const BODY_FONT: Partial<ExcelJS.Font> = { name: 'Calibri', size: 9 }
 const THIN_BORDER: Partial<ExcelJS.Borders> = {
   top: { style: 'thin' },
   left: { style: 'thin' },
   bottom: { style: 'thin' },
   right: { style: 'thin' },
+}
+
+// Split "DrugName 0.8ml" into [name, dose] or null
+function splitDrugEntry(v: string): [string, string] | null {
+  const match = v.match(/^(.+?)\s+(\d[\d.]*\s*(?:ml|mg|IU|mcg).*)$/i)
+  return match ? [match[1], match[2]] : null
+}
+
+// Build rich text for a cell: each entry as name (bold dark) + dose (gray), separated by newlines
+function buildRichText(entries: string[]): ExcelJS.CellRichTextValue {
+  const richText: ExcelJS.RichText[] = []
+  entries.forEach((entry, i) => {
+    if (i > 0) richText.push({ text: '\n' })
+    const parts = splitDrugEntry(entry)
+    if (parts) {
+      richText.push({ font: NAME_FONT, text: parts[0] + '  ' })
+      richText.push({ font: DOSE_FONT, text: parts[1] })
+    } else {
+      richText.push({ font: NAME_FONT, text: entry })
+    }
+  })
+  return { richText }
 }
 
 export function exportScheduleToXLSX(
@@ -54,24 +78,35 @@ export function exportScheduleToXLSX(
     cell.border = THIN_BORDER
   })
 
+  // Per-entry row height (approx 14pt per line)
+  const LINE_HEIGHT = 14
+
   // Data rows
   for (let week = 1; week <= totalWeeks; week++) {
-    const rowData = [`Week ${week}`]
+    const row = ws.addRow([`Week ${week}`])
+
+    // Find max entries in any day this week for row height
+    let maxEntries = 0
     for (let day = 1; day <= 7; day++) {
       const entries = cellMap.get(`${week}-${day}`) || []
-      rowData.push(entries.join('\n'))
-    }
-    const row = ws.addRow(rowData)
-    row.height = 30
-    row.eachCell((cell, colNumber) => {
-      cell.font = BODY_FONT
-      cell.alignment = { wrapText: true, vertical: 'top' }
-      cell.border = THIN_BORDER
-      if (colNumber === 1) {
-        cell.font = { ...BODY_FONT, bold: true }
-        cell.alignment = { horizontal: 'center', vertical: 'middle' }
+      maxEntries = Math.max(maxEntries, entries.length)
+
+      const cellRef = row.getCell(day + 1)
+      if (entries.length > 0) {
+        cellRef.value = buildRichText(entries)
       }
-    })
+      cellRef.alignment = { wrapText: true, vertical: 'top' }
+      cellRef.border = THIN_BORDER
+    }
+
+    // Height: entries + 1 extra line of padding
+    row.height = Math.max(LINE_HEIGHT * (maxEntries + 1), LINE_HEIGHT * 2)
+
+    // Week column
+    const weekCell = row.getCell(1)
+    weekCell.font = { ...BODY_FONT, bold: true }
+    weekCell.alignment = { horizontal: 'center', vertical: 'middle' }
+    weekCell.border = THIN_BORDER
   }
 
   // Auto-fit column widths
@@ -79,7 +114,7 @@ export function exportScheduleToXLSX(
   for (let c = 2; c <= 8; c++) {
     let maxLen = dayLabels[c - 2].length
     ws.getColumn(c).eachCell((cell) => {
-      const val = cell.value?.toString() || ''
+      const val = cell.text || ''
       for (const line of val.split('\n')) {
         maxLen = Math.max(maxLen, line.length)
       }
