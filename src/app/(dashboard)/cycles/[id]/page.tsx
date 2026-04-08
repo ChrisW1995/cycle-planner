@@ -53,15 +53,45 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
   const [localMoves, setLocalMoves] = useState<CellMoveData[]>([])
 
   // Initialize skip state from saved cells (once on load)
-  const savedSkipSet = useMemo(() => {
+  // Separate drag-moved skips from regular skips
+  const { savedSkipSet, savedMovesList } = useMemo(() => {
     const set = new Set<string>()
+    const moves: CellMoveData[] = []
     if (savedCells) {
+      // Find moved pairs: skipped+manual_override source → manual_override target (same cycle_drug_id)
+      const skippedManual = savedCells.filter((c) => c.is_skipped && c.is_manual_override)
+      const movedTargets = savedCells.filter((c) => !c.is_skipped && c.is_manual_override)
+
+      const pairedSourceKeys = new Set<string>()
+      for (const source of skippedManual) {
+        const target = movedTargets.find((t) => t.cycle_drug_id === source.cycle_drug_id)
+        if (target) {
+          moves.push({
+            cycleDrugId: source.cycle_drug_id,
+            fromWeek: source.week_number,
+            fromDay: source.day_of_week,
+            toWeek: target.week_number,
+            toDay: target.day_of_week,
+          })
+          pairedSourceKeys.add(`${source.cycle_drug_id}-${source.week_number}-${source.day_of_week}`)
+        }
+      }
+
       for (const c of savedCells) {
-        if (c.is_skipped) set.add(`${c.cycle_drug_id}-${c.week_number}-${c.day_of_week}`)
+        if (c.is_skipped && !pairedSourceKeys.has(`${c.cycle_drug_id}-${c.week_number}-${c.day_of_week}`)) {
+          set.add(`${c.cycle_drug_id}-${c.week_number}-${c.day_of_week}`)
+        }
       }
     }
-    return set
+    return { savedSkipSet: set, savedMovesList: moves }
   }, [savedCells])
+
+  // Initialize localMoves from saved moves on first load
+  const [movesInitialized, setMovesInitialized] = useState(false)
+  if (!movesInitialized && savedMovesList.length > 0) {
+    setLocalMoves(savedMovesList)
+    setMovesInitialized(true)
+  }
 
   // Use saved skips until user makes local changes
   const activeSkips = localSkips ?? savedSkipSet
@@ -100,11 +130,11 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
       }
     }
 
-    // Filter out source cells that were moved away
+    // Mark moved-away source cells as skipped (so they persist on save)
     const baseCells: CycleCell[] = []
     generatedCells.forEach((cell, i) => {
       const sourceKey = `${cell.cycle_drug_id}-${cell.week_number}-${cell.day_of_week}`
-      if (movedSourceKeys.has(sourceKey)) return
+      const wasMovedAway = movedSourceKeys.has(sourceKey)
 
       const key = `${cell.week_number}-${cell.day_of_week}`
       const override = localOverrides.get(`${key}-${cell.cycle_drug_id}`)
@@ -117,8 +147,8 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
         day_of_week: cell.day_of_week,
         display_value: override?.value || cell.display_value,
         ml_amount: override?.ml ?? cell.ml_amount,
-        is_manual_override: cell.is_manual_override || !!override,
-        is_skipped: activeSkips.has(skipKey),
+        is_manual_override: cell.is_manual_override || !!override || wasMovedAway,
+        is_skipped: wasMovedAway || activeSkips.has(skipKey),
         created_at: '',
       })
     })

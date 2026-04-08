@@ -23,6 +23,12 @@ interface DashboardStats {
 export default function DashboardPage() {
   const { data: allDrugs } = useDrugs()
   const { data: globalDeficits } = useGlobalInventoryDeficits()
+  const [lowStockThreshold, setLowStockThreshold] = useState(1)
+
+  useEffect(() => {
+    const saved = localStorage.getItem('lowStockThreshold')
+    if (saved) setLowStockThreshold(parseInt(saved) || 1)
+  }, [])
 
   const [stats, setStats] = useState<DashboardStats>({
     totalPeople: 0,
@@ -140,8 +146,7 @@ export default function DashboardPage() {
       </div>
 
       {(() => {
-        const threshold = typeof window !== 'undefined' ? parseInt(localStorage.getItem('lowStockThreshold') || '1') || 1 : 1
-        const lowStockCount = allDrugs?.filter(d => d.inventory_count <= threshold).length || stats.lowStockDrugs
+        const lowStockCount = allDrugs ? allDrugs.filter(d => d.inventory_count <= lowStockThreshold).length : stats.lowStockDrugs
         const deficitDrugs = globalDeficits?.filter(d => d.deficit < 0) || []
 
         return (

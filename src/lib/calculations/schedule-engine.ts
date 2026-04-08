@@ -232,6 +232,17 @@ export function generateAllCells(
           is_manual_override: override.is_manual_override,
           is_skipped: override.is_skipped ?? false,
         }
+      } else if (override.is_manual_override && !override.is_skipped) {
+        // Moved cell: exists at a non-generated position, add it
+        allCells.push({
+          cycle_drug_id: override.cycle_drug_id,
+          week_number: override.week_number,
+          day_of_week: override.day_of_week,
+          display_value: override.display_value || '',
+          ml_amount: override.ml_amount,
+          is_manual_override: true,
+          is_skipped: false,
+        })
       }
     }
   }
