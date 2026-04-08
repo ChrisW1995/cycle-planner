@@ -203,10 +203,10 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
                     />
                     {cycle.start_date && (
                       <button
-                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                         onClick={() => updateCycle.mutate({ id, start_date: null })}
                       >
-                        <X className="h-3.5 w-3.5" />
+                        <X className="h-4 w-4" />
                       </button>
                     )}
                   </div>
