@@ -48,12 +48,32 @@ export function PasskeyRegisterPrompt({ onComplete }: PasskeyRegisterPromptProps
       toast.success('Passkey 已儲存', {
         description: '下次可直接使用 Face ID / Touch ID 登入',
       })
+      localStorage.setItem(DISMISSED_KEY, 'true')
       onComplete()
     } catch (error) {
       const message = error instanceof Error ? error.message : '註冊失敗'
-      if (!message.includes('cancelled') && !message.includes('abort')) {
-        toast.error('Passkey 註冊失敗', { description: message })
+
+      // User cancelled biometric prompt
+      if (message.includes('cancelled') || message.includes('abort')) {
+        return
       }
+
+      // Authenticator already registered (e.g. synced via iCloud Keychain)
+      if (
+        message.includes('previously registered') ||
+        message.includes('already registered') ||
+        message.includes('excludeCredentials')
+      ) {
+        toast.info('Passkey 已設定', {
+          description: '你的裝置已有可用的 Passkey，下次可直接使用登入',
+        })
+        localStorage.setItem(DISMISSED_KEY, 'true')
+        onComplete()
+        return
+      }
+
+      toast.error('Passkey 註冊失敗', { description: message })
+      handleDismiss()
     } finally {
       setLoading(false)
     }

@@ -35,10 +35,15 @@ export default function LoginPage() {
       return
     }
 
+    const data = await res.json()
     toast.success('登入成功')
 
-    // Show passkey registration prompt after successful login
-    if (window.PublicKeyCredential && !localStorage.getItem('passkey-prompt-dismissed')) {
+    // Show passkey registration prompt only if user has no passkeys yet
+    if (
+      window.PublicKeyCredential &&
+      !localStorage.getItem('passkey-prompt-dismissed') &&
+      !data.has_passkeys
+    ) {
       setShowPasskeyPrompt(true)
     } else {
       router.push('/')

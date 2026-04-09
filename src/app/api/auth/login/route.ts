@@ -39,11 +39,18 @@ export async function POST(request: NextRequest) {
     role: account.role,
   })
 
+  // Check if user already has passkeys registered
+  const { count } = await supabase
+    .from('webauthn_credentials')
+    .select('id', { count: 'exact', head: true })
+    .eq('account_id', account.id)
+
   const response = NextResponse.json({
     id: account.id,
     username: account.username,
     display_name: account.display_name,
     role: account.role,
+    has_passkeys: (count ?? 0) > 0,
   })
 
   response.cookies.set(COOKIE_NAME, token, {
