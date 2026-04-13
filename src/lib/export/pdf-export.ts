@@ -44,6 +44,26 @@ function splitDrugEntry(v: string): [string, string] | null {
   return match ? [match[1], match[2]] : null
 }
 
+/** Truncate text to fit within maxWidth (mm), appending "..." if needed */
+function truncateText(doc: jsPDF, text: string, maxWidth: number): string {
+  if (doc.getTextWidth(text) <= maxWidth) return text
+  const ellipsis = '...'
+  const ellipsisWidth = doc.getTextWidth(ellipsis)
+  const targetWidth = maxWidth - ellipsisWidth
+  if (targetWidth <= 0) return ellipsis
+  let lo = 0
+  let hi = text.length
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1
+    if (doc.getTextWidth(text.slice(0, mid)) <= targetWidth) {
+      lo = mid
+    } else {
+      hi = mid - 1
+    }
+  }
+  return text.slice(0, lo) + ellipsis
+}
+
 export async function exportScheduleToPDF(
   title: string,
   totalWeeks: number,
@@ -145,24 +165,32 @@ export async function exportScheduleToPDF(
       const x = data.cell.x + padding
       const xRight = data.cell.x + data.cell.width - padding
       let y = data.cell.y + 3 + fontSize * 0.35
+      const cellContentWidth = data.cell.width - 2 * padding
+      const gap = 1.5
 
       doc.setFontSize(fontSize)
 
       for (const entry of entries) {
         const parts = splitDrugEntry(entry)
         if (parts) {
-          // Drug name — bold dark, left aligned
           doc.setFont(fontName, 'normal', 'bold')
+          const doseWidth = doc.getTextWidth(parts[1])
+          const maxNameWidth = cellContentWidth - doseWidth - gap
+
+          // Drug name — truncated if needed
           doc.setTextColor(20, 20, 20)
-          doc.text(parts[0], x, y)
-          // Dose — bold lighter gray, right aligned
-          doc.setFont(fontName, 'normal', 'bold')
+          const displayName = maxNameWidth > 0
+            ? truncateText(doc, parts[0], maxNameWidth)
+            : parts[0].charAt(0) + '...'
+          doc.text(displayName, x, y)
+
+          // Dose — right-aligned, never truncated
           doc.setTextColor(120, 120, 120)
           doc.text(parts[1], xRight, y, { align: 'right' })
         } else {
           doc.setFont(fontName, 'normal', 'bold')
           doc.setTextColor(20, 20, 20)
-          doc.text(entry, x, y)
+          doc.text(truncateText(doc, entry, cellContentWidth), x, y)
         }
         y += entrySpacing
       }
