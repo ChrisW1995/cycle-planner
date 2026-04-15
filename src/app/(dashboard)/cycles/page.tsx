@@ -37,6 +37,7 @@ export default function CyclesPage() {
   // Add-drug form state
   const [addDrugId, setAddDrugId] = useState('')
   const [addDrugDose, setAddDrugDose] = useState('')
+  const [addDrugScheduleMode, setAddDrugScheduleMode] = useState('')
   const [addDrugStartWeek, setAddDrugStartWeek] = useState('1')
   const [addDrugEndWeek, setAddDrugEndWeek] = useState('12')
 
@@ -55,6 +56,7 @@ export default function CyclesPage() {
       setEditDesc(editTemplate.description || '')
       setAddDrugId('')
       setAddDrugDose('')
+      setAddDrugScheduleMode('')
       setAddDrugStartWeek('1')
       setAddDrugEndWeek(String(editTemplate.total_weeks))
     }
@@ -260,45 +262,87 @@ export default function CyclesPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <Label className="text-xs">劑量</Label>
-                    <Input type="number" step="any" value={addDrugDose} onChange={(e) => setAddDrugDose(e.target.value)} placeholder="mg" className="text-sm" />
-                  </div>
-                  <div>
-                    <Label className="text-xs">起始週</Label>
-                    <Input type="number" min="1" value={addDrugStartWeek} onChange={(e) => setAddDrugStartWeek(e.target.value)} className="text-sm" />
-                  </div>
-                  <div>
-                    <Label className="text-xs">結束週</Label>
-                    <Input type="number" min="1" value={addDrugEndWeek} onChange={(e) => setAddDrugEndWeek(e.target.value)} className="text-sm" />
-                  </div>
-                </div>
-                <Button size="sm" variant="outline" className="w-full"
-                  disabled={!addDrugId || !addDrugDose || !editTemplate || addTemplateDrug.isPending}
-                  onClick={() => {
-                    if (!editTemplate || !addDrugId) return
-                    const drug = allDrugs?.find(d => d.id === addDrugId)
-                    const isOral = drug && (drug.primary_category === 'Oral' || drug.primary_category === 'PCT')
-                    addTemplateDrug.mutate({
-                      template_id: editTemplate.id,
-                      drug_id: addDrugId,
-                      weekly_dose: isOral ? null : parseFloat(addDrugDose) || null,
-                      daily_dose: isOral ? parseFloat(addDrugDose) || null : null,
-                      start_week: parseInt(addDrugStartWeek) || 1,
-                      end_week: parseInt(addDrugEndWeek) || editTemplate.total_weeks,
-                    }, {
-                      onSuccess: () => {
-                        setAddDrugId('')
-                        setAddDrugDose('')
-                        setAddDrugStartWeek('1')
-                        setAddDrugEndWeek(String(editTemplate?.total_weeks || 12))
-                      }
-                    })
-                  }}
-                >
-                  {addTemplateDrug.isPending ? '新增中...' : '新增藥物'}
-                </Button>
+                {(() => {
+                  const selectedDrug = allDrugs?.find(d => d.id === addDrugId)
+                  const isInjectable = selectedDrug?.primary_category === 'Injectable'
+                  const isOral = selectedDrug && (selectedDrug.primary_category === 'Oral' || selectedDrug.primary_category === 'PCT')
+                  return (
+                    <>
+                      {/* Schedule mode selector — for both injectable and oral */}
+                      {addDrugId && (
+                        <Select value={addDrugScheduleMode} onValueChange={(v: string | null) => setAddDrugScheduleMode(v || '')}>
+                          <SelectTrigger className="text-sm">
+                            <SelectValue placeholder="施打方式...">
+                              {(value: string | null) => {
+                                if (!value) return null
+                                const labels: Record<string, string> = {
+                                  'twice_weekly': '一週兩次 (Day1 & Day4)',
+                                  'eod': '隔日 (EOD)',
+                                  'daily': '每日',
+                                  'split_weekly': '每週固定天 (Day1 & Day4)',
+                                }
+                                return labels[value] ?? value
+                              }}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {isInjectable ? (
+                              <>
+                                <SelectItem value="twice_weekly">一週兩次 (Day1 & Day4)</SelectItem>
+                                <SelectItem value="eod">隔日 (EOD)</SelectItem>
+                              </>
+                            ) : (
+                              <>
+                                <SelectItem value="daily">每日</SelectItem>
+                                <SelectItem value="eod">隔日 (EOD)</SelectItem>
+                                <SelectItem value="split_weekly">每週固定天 (Day1 & Day4)</SelectItem>
+                              </>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <Label className="text-xs">{isOral ? '劑量 (mg/day)' : '劑量 (mg/wk)'}</Label>
+                          <Input type="number" step="any" value={addDrugDose} onChange={(e) => setAddDrugDose(e.target.value)} placeholder="mg" className="text-sm" />
+                        </div>
+                        <div>
+                          <Label className="text-xs">起始週</Label>
+                          <Input type="number" min="1" value={addDrugStartWeek} onChange={(e) => setAddDrugStartWeek(e.target.value)} className="text-sm" />
+                        </div>
+                        <div>
+                          <Label className="text-xs">結束週</Label>
+                          <Input type="number" min="1" value={addDrugEndWeek} onChange={(e) => setAddDrugEndWeek(e.target.value)} className="text-sm" />
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline" className="w-full"
+                        disabled={!addDrugId || !addDrugDose || !editTemplate || addTemplateDrug.isPending}
+                        onClick={() => {
+                          if (!editTemplate || !addDrugId) return
+                          addTemplateDrug.mutate({
+                            template_id: editTemplate.id,
+                            drug_id: addDrugId,
+                            weekly_dose: isOral ? null : parseFloat(addDrugDose) || null,
+                            daily_dose: isOral ? parseFloat(addDrugDose) || null : null,
+                            schedule_mode: addDrugScheduleMode || null,
+                            start_week: parseInt(addDrugStartWeek) || 1,
+                            end_week: parseInt(addDrugEndWeek) || editTemplate.total_weeks,
+                          }, {
+                            onSuccess: () => {
+                              setAddDrugId('')
+                              setAddDrugDose('')
+                              setAddDrugScheduleMode('')
+                              setAddDrugStartWeek('1')
+                              setAddDrugEndWeek(String(editTemplate?.total_weeks || 12))
+                            }
+                          })
+                        }}
+                      >
+                        {addTemplateDrug.isPending ? '新增中...' : '新增藥物'}
+                      </Button>
+                    </>
+                  )
+                })()}
               </div>
             </div>
           </div>
