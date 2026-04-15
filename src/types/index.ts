@@ -131,6 +131,34 @@ export interface CycleDrug {
 
 export type CycleDrugFormData = Omit<CycleDrug, 'id' | 'created_at' | 'drug' | 'cells'>
 
+// ==================== Cycle Templates ====================
+export interface CycleTemplate {
+  id: string
+  name: string
+  description: string | null
+  total_weeks: number
+  created_at: string
+  updated_at: string
+  // Joined
+  drugs?: CycleTemplateDrug[]
+}
+
+export interface CycleTemplateDrug {
+  id: string
+  template_id: string
+  drug_id: string
+  weekly_dose: number | null
+  daily_dose: number | null
+  injection_ml: number | null
+  total_injections: number | null
+  schedule_mode: string | null
+  start_week: number
+  end_week: number
+  created_at: string
+  // Joined
+  drug?: Drug
+}
+
 // ==================== Cycle Cells ====================
 export interface CycleCell {
   id: string
