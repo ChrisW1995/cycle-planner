@@ -3,11 +3,14 @@
 import { useState, useEffect } from 'react'
 import { useCycles, useDeleteCycle } from '@/hooks/use-cycles'
 import { useAuth } from '@/hooks/use-auth'
-import { useTemplates, useDeleteTemplate, useUpdateTemplate, useRemoveTemplateDrug } from '@/hooks/use-templates'
+import { useTemplates, useDeleteTemplate, useUpdateTemplate, useRemoveTemplateDrug, useAddTemplateDrug } from '@/hooks/use-templates'
+import { useDrugs } from '@/hooks/use-drugs'
 import { CycleExportDialog } from '@/components/cycles/cycle-export-dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Plus, Eye, Pencil, Trash2, ChevronDown, ChevronUp, BookmarkPlus, Pill, X } from 'lucide-react'
@@ -31,17 +34,29 @@ export default function CyclesPage() {
   const [editName, setEditName] = useState('')
   const [editDesc, setEditDesc] = useState('')
 
+  // Add-drug form state
+  const [addDrugId, setAddDrugId] = useState('')
+  const [addDrugDose, setAddDrugDose] = useState('')
+  const [addDrugStartWeek, setAddDrugStartWeek] = useState('1')
+  const [addDrugEndWeek, setAddDrugEndWeek] = useState('12')
+
   // Template hooks
   const { data: templates } = useTemplates()
   const deleteTemplateMut = useDeleteTemplate()
   const updateTemplate = useUpdateTemplate()
   const removeTemplateDrug = useRemoveTemplateDrug()
+  const addTemplateDrug = useAddTemplateDrug()
+  const { data: allDrugs } = useDrugs()
 
   // Sync edit form when editTemplate changes
   useEffect(() => {
     if (editTemplate) {
       setEditName(editTemplate.name)
       setEditDesc(editTemplate.description || '')
+      setAddDrugId('')
+      setAddDrugDose('')
+      setAddDrugStartWeek('1')
+      setAddDrugEndWeek(String(editTemplate.total_weeks))
     }
   }, [editTemplate])
 
@@ -75,8 +90,9 @@ export default function CyclesPage() {
             </span>
             {templatesExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
-          {templatesExpanded && (
-            <div className="border-t px-4 py-3">
+          <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${templatesExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+            <div className="overflow-hidden">
+              <div className="border-t px-4 py-3">
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {templates.map((tpl) => (
                   <div key={tpl.id} className="group relative rounded-lg border p-3">
@@ -110,7 +126,8 @@ export default function CyclesPage() {
                 ))}
               </div>
             </div>
-          )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -222,6 +239,68 @@ export default function CyclesPage() {
                 </div>
               </div>
             )}
+            {/* Add Drug to Template */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">新增藥物</label>
+              <div className="space-y-2 rounded-md border p-3">
+                <Select value={addDrugId} onValueChange={(v: string | null) => v && setAddDrugId(v)}>
+                  <SelectTrigger className="text-sm">
+                    <SelectValue placeholder="選擇藥物...">
+                      {(value: string | null) => {
+                        if (!value) return null
+                        return allDrugs?.find((d) => d.id === value)?.name ?? value
+                      }}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allDrugs?.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.name} ({d.concentration}{d.unit})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Label className="text-xs">劑量</Label>
+                    <Input type="number" step="any" value={addDrugDose} onChange={(e) => setAddDrugDose(e.target.value)} placeholder="mg" className="text-sm" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">起始週</Label>
+                    <Input type="number" min="1" value={addDrugStartWeek} onChange={(e) => setAddDrugStartWeek(e.target.value)} className="text-sm" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">結束週</Label>
+                    <Input type="number" min="1" value={addDrugEndWeek} onChange={(e) => setAddDrugEndWeek(e.target.value)} className="text-sm" />
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" className="w-full"
+                  disabled={!addDrugId || !addDrugDose || !editTemplate || addTemplateDrug.isPending}
+                  onClick={() => {
+                    if (!editTemplate || !addDrugId) return
+                    const drug = allDrugs?.find(d => d.id === addDrugId)
+                    const isOral = drug && (drug.primary_category === 'Oral' || drug.primary_category === 'PCT')
+                    addTemplateDrug.mutate({
+                      template_id: editTemplate.id,
+                      drug_id: addDrugId,
+                      weekly_dose: isOral ? null : parseFloat(addDrugDose) || null,
+                      daily_dose: isOral ? parseFloat(addDrugDose) || null : null,
+                      start_week: parseInt(addDrugStartWeek) || 1,
+                      end_week: parseInt(addDrugEndWeek) || editTemplate.total_weeks,
+                    }, {
+                      onSuccess: () => {
+                        setAddDrugId('')
+                        setAddDrugDose('')
+                        setAddDrugStartWeek('1')
+                        setAddDrugEndWeek(String(editTemplate?.total_weeks || 12))
+                      }
+                    })
+                  }}
+                >
+                  {addTemplateDrug.isPending ? '新增中...' : '新增藥物'}
+                </Button>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditTemplate(null)}>取消</Button>

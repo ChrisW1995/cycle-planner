@@ -99,6 +99,31 @@ export function useUpdateTemplate() {
   })
 }
 
+export function useAddTemplateDrug() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (drug: {
+      template_id: string
+      drug_id: string
+      weekly_dose?: number | null
+      daily_dose?: number | null
+      injection_ml?: number | null
+      total_injections?: number | null
+      schedule_mode?: string | null
+      start_week: number
+      end_week: number
+    }) => {
+      const { data, error } = await supabase.from('cycle_template_drugs').insert(drug).select('*, drug:drugs(id, name, concentration, primary_category, ester_type, unit)').single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cycle-templates'], refetchType: 'all' })
+    },
+    onError: (error) => toast.error('新增失敗', { description: error.message }),
+  })
+}
+
 export function useRemoveTemplateDrug() {
   const queryClient = useQueryClient()
   return useMutation({

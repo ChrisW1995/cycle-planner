@@ -38,8 +38,8 @@ export function PersonCard({ person, isAdmin, onDelete, onToggleNeedsCycle }: Pe
   const personStatus = getPersonStatus(person)
 
   return (
-    <Link href={`/people/${person.id}`}>
-      <Card className="relative group transition-colors hover:bg-accent/50 cursor-pointer">
+    <Link href={`/people/${person.id}`} className="flex">
+      <Card className="relative group transition-colors hover:bg-accent/50 cursor-pointer flex-1 flex flex-col">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2">
