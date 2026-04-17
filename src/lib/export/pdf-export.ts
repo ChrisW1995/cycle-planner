@@ -63,22 +63,53 @@ export async function exportScheduleToPDF(
   // Schedule table — store real entries separately, pass placeholder text for row height calculation
   const headers = ['Week', ...getDayLabels(startDate)]
   const body: string[][] = []
-  const entriesMap = new Map<string, string[]>() // "row-col" → entries
+
+  const fontSize = 9
+  const entrySpacing = 3.8 // mm between each drug entry
+  const padding = 2
+  const gap = 1.5
+  const dayCellWidth = 35
+  const dayContentWidth = dayCellWidth - 2 * padding
+
+  interface EntryLayout {
+    name: string
+    dose: string
+    wrapped: boolean
+    hasParts: boolean
+  }
+  const entryLayoutsMap = new Map<string, EntryLayout[]>()
+
+  // Pre-pass: measure each entry and decide whether it needs 2 lines
+  doc.setFontSize(fontSize)
+  doc.setFont(fontName, 'normal', 'bold')
 
   for (let week = 1; week <= totalWeeks; week++) {
     const row = [`Week ${week}`]
     for (let day = 1; day <= 7; day++) {
       const entries = cellMap.get(`${week}-${day}`) || []
-      entriesMap.set(`Week ${week}-${day}`, entries)
-      // Pass actual text so autoTable calculates correct row height
-      row.push(entries.join('\n'))
+      const layouts: EntryLayout[] = []
+      const displayLines: string[] = []
+
+      for (const entry of entries) {
+        const parts = splitDrugEntry(entry)
+        if (parts) {
+          const [name, dose] = parts
+          const nameWidth = doc.getTextWidth(name)
+          const doseWidth = doc.getTextWidth(dose)
+          const wrapped = nameWidth + doseWidth + gap > dayContentWidth
+          layouts.push({ name, dose, wrapped, hasParts: true })
+          displayLines.push(wrapped ? `${name}\n${dose}` : entry)
+        } else {
+          layouts.push({ name: entry, dose: '', wrapped: false, hasParts: false })
+          displayLines.push(entry)
+        }
+      }
+
+      entryLayoutsMap.set(`Week ${week}-${day}`, layouts)
+      row.push(displayLines.join('\n'))
     }
     body.push(row)
   }
-
-  const fontSize = 9
-  const entrySpacing = 3.8 // mm between each drug entry
-  const padding = 2
 
   autoTable(doc, {
     startY: 22,
@@ -124,53 +155,77 @@ export async function exportScheduleToPDF(
       // Use raw row data for lookup — works for both normal and remainder (page-split) rows
       const rawRow = data.row.raw as string[]
       const weekLabel = rawRow[0]
-      const entries = entriesMap.get(`${weekLabel}-${data.column.index}`) || []
-      if (entries.length === 0) return
+      const layouts = entryLayoutsMap.get(`${weekLabel}-${data.column.index}`) || []
+      if (layouts.length === 0) return
 
       // Clear autoTable's placeholder text
       doc.setFillColor(255, 255, 255)
       doc.rect(data.cell.x + 0.1, data.cell.y + 0.1, data.cell.width - 0.2, data.cell.height - 0.2, 'F')
 
-      // Determine which entries belong to this cell portion.
+      // Determine which lines belong to this cell portion.
       // When autoTable splits a row across pages, remainder rows have index === -1
       // and cell.text contains only the lines assigned to this page portion.
+      const totalLines = layouts.reduce((sum, l) => sum + (l.wrapped ? 2 : 1), 0)
       const isRemainder = data.row.index === -1
-      const cellTextLineCount = Array.isArray(data.cell.text) ? data.cell.text.length : 0
-      const startIndex = isRemainder ? Math.max(0, entries.length - cellTextLineCount) : 0
+      const cellTextLineCount = Array.isArray(data.cell.text) ? data.cell.text.length : totalLines
+      const linesToSkip = isRemainder ? Math.max(0, totalLines - cellTextLineCount) : 0
+
+      // Walk layouts to find the starting position after skipping lines
+      let linesConsumed = 0
+      let startLayoutIdx = 0
+      let skipFirstLayoutName = false
+      for (let i = 0; i < layouts.length; i++) {
+        const layoutLines = layouts[i].wrapped ? 2 : 1
+        if (linesConsumed + layoutLines <= linesToSkip) {
+          linesConsumed += layoutLines
+          startLayoutIdx++
+        } else {
+          skipFirstLayoutName = linesToSkip - linesConsumed >= 1
+          break
+        }
+      }
 
       const x = data.cell.x + padding
       const xRight = data.cell.x + data.cell.width - padding
       let y = data.cell.y + 3 + fontSize * 0.35
       const cellBottom = data.cell.y + data.cell.height - 1
       const cellContentWidth = data.cell.width - 2 * padding
-      const gap = 1.5
 
       doc.setFontSize(fontSize)
 
-      for (let i = startIndex; i < entries.length; i++) {
+      for (let i = startLayoutIdx; i < layouts.length; i++) {
         if (y > cellBottom) break
+        const l = layouts[i]
+        const isFirst = i === startLayoutIdx
 
-        const entry = entries[i]
-        const parts = splitDrugEntry(entry)
-        if (parts) {
-          doc.setFont(fontName, 'normal', 'bold')
-          const doseWidth = doc.getTextWidth(parts[1])
-          const maxNameWidth = cellContentWidth - doseWidth - gap
-
-          doc.setTextColor(20, 20, 20)
-          const displayName = maxNameWidth > 0
-            ? truncateText(doc, parts[0], maxNameWidth)
-            : parts[0].charAt(0) + '...'
-          doc.text(displayName, x, y)
-
-          doc.setTextColor(120, 120, 120)
-          doc.text(parts[1], xRight, y, { align: 'right' })
+        if (l.hasParts) {
+          if (l.wrapped) {
+            const skipName = isFirst && skipFirstLayoutName
+            if (!skipName) {
+              doc.setFont(fontName, 'normal', 'bold')
+              doc.setTextColor(20, 20, 20)
+              doc.text(truncateText(doc, l.name, cellContentWidth), x, y)
+              y += entrySpacing
+              if (y > cellBottom) break
+            }
+            doc.setFont(fontName, 'normal', 'bold')
+            doc.setTextColor(120, 120, 120)
+            doc.text(l.dose, xRight, y, { align: 'right' })
+            y += entrySpacing
+          } else {
+            doc.setFont(fontName, 'normal', 'bold')
+            doc.setTextColor(20, 20, 20)
+            doc.text(l.name, x, y)
+            doc.setTextColor(120, 120, 120)
+            doc.text(l.dose, xRight, y, { align: 'right' })
+            y += entrySpacing
+          }
         } else {
           doc.setFont(fontName, 'normal', 'bold')
           doc.setTextColor(20, 20, 20)
-          doc.text(truncateText(doc, entry, cellContentWidth), x, y)
+          doc.text(truncateText(doc, l.name, cellContentWidth), x, y)
+          y += entrySpacing
         }
-        y += entrySpacing
       }
     },
     didDrawPage: () => {
@@ -185,18 +240,11 @@ export async function exportScheduleToPDF(
     },
   })
 
-  // Drug stats table — on a new page
+  // Drug stats table — placed on same page if room, else new page
   if (deltas && deltas.length > 0) {
-    doc.addPage()
-
-    doc.setFont(fontName, 'normal', 'bold')
-    doc.setFontSize(14)
-    doc.setTextColor(0)
-    doc.text(hasCJK ? '藥物用量統計' : 'Drug Stats', 14, 15)
-
     const statsHeaders = hasCJK ? ['藥物', '需求量'] : ['Drug', 'Needed']
     const groups = groupDeltasByCategory(deltas)
-    const statsBody: any[][] = []
+    const statsBody: (string | { content: string; colSpan: number; styles: Record<string, unknown> })[][] = []
     for (const group of groups) {
       // Category header row — spans both columns, centered
       statsBody.push([{
@@ -221,8 +269,32 @@ export async function exportScheduleToPDF(
       }
     }
 
+    // Estimate space needed: title (~10mm) + header row (~7mm) + each row (~6mm) + bottom margin
+    const estimatedHeight = 10 + 7 + statsBody.length * 6 + 4
+    const scheduleEndY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 20
+    const pageHeight = doc.internal.pageSize.height
+    const footerReserve = 15 // footer + safe margin
+    const available = pageHeight - scheduleEndY - footerReserve
+
+    let titleY: number
+    let tableStartY: number
+    if (available >= estimatedHeight) {
+      // Fits on current page — place below schedule with a small gap
+      titleY = scheduleEndY + 10
+      tableStartY = titleY + 5
+    } else {
+      doc.addPage()
+      titleY = 15
+      tableStartY = 20
+    }
+
+    doc.setFont(fontName, 'normal', 'bold')
+    doc.setFontSize(14)
+    doc.setTextColor(0)
+    doc.text(hasCJK ? '藥物用量統計' : 'Drug Stats', 14, titleY)
+
     autoTable(doc, {
-      startY: 20,
+      startY: tableStartY,
       head: [statsHeaders],
       body: statsBody,
       theme: 'grid',
@@ -235,13 +307,13 @@ export async function exportScheduleToPDF(
         font: fontName,
       },
       bodyStyles: {
-        fontSize: 9,
-        cellPadding: 2,
+        fontSize: 10,
+        cellPadding: 2.5,
         font: fontName,
         textColor: [20, 20, 20],
       },
       columnStyles: {
-        0: { cellWidth: 40 },
+        0: { cellWidth: 40, fontStyle: 'bold', textColor: [20, 20, 20] },
         1: { cellWidth: 60, halign: 'right', textColor: [100, 100, 100] },
       },
       styles: {
