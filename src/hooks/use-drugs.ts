@@ -134,3 +134,41 @@ export function useDeleteDrug() {
     },
   })
 }
+
+export interface BatchInventoryUpdate {
+  id: string
+  inventory_count: number
+}
+
+export function useBatchUpdateDrugInventory() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (updates: BatchInventoryUpdate[]) => {
+      if (updates.length === 0) return []
+      const results = await Promise.all(
+        updates.map((u) =>
+          supabase
+            .from('drugs')
+            .update({ inventory_count: u.inventory_count })
+            .eq('id', u.id)
+            .select('id, inventory_count')
+            .single(),
+        ),
+      )
+      const failed = results.filter((r) => r.error)
+      if (failed.length > 0) {
+        throw new Error(`${failed.length} 筆更新失敗：${failed[0].error?.message}`)
+      }
+      return results.map((r) => r.data)
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['drugs'] })
+      queryClient.invalidateQueries({ queryKey: ['global-inventory-deficits'] })
+      toast.success(`已更新 ${data.length} 項庫存`)
+    },
+    onError: (error) => {
+      toast.error('批次更新失敗', { description: error.message })
+    },
+  })
+}
