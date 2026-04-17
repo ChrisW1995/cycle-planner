@@ -52,6 +52,7 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
   const [localOverrides, setLocalOverrides] = useState<Map<string, { value: string; ml: number | null }>>(new Map())
   const [localSkips, setLocalSkips] = useState<Set<string> | null>(null)
   const [localNotes, setLocalNotes] = useState<string | null>(null)
+  const [localName, setLocalName] = useState<string | null>(null)
   const [localMoves, setLocalMoves] = useState<CellMoveData[]>([])
 
   // Initialize skip state from saved cells (once on load)
@@ -390,9 +391,19 @@ export default function CycleBuilderPage({ params }: { params: Promise<{ id: str
               {isEditable ? (
                 <input
                   className="text-2xl font-bold bg-transparent border-none outline-none focus:ring-1 focus:ring-primary rounded px-1 -mx-1 min-w-0"
-                  value={cycle.name || ''}
+                  value={localName ?? cycle.name ?? ''}
                   placeholder={`${(cycle as any).person?.nickname} 的課表`}
-                  onChange={(e) => updateCycle.mutate({ id, name: e.target.value || null })}
+                  onChange={(e) => setLocalName(e.target.value)}
+                  onBlur={() => {
+                    if (localName !== null && localName !== (cycle.name ?? '')) {
+                      updateCycle.mutate({ id, name: localName || null })
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                      e.currentTarget.blur()
+                    }
+                  }}
                 />
               ) : (
                 <h1 className="text-2xl font-bold">
