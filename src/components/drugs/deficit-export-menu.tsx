@@ -31,17 +31,19 @@ export function DeficitActions({ deficits, allDrugs }: DeficitActionsProps) {
         匯出 PDF
       </Button>
       {isAdmin && (
-        <Button variant="outline" size="sm" onClick={() => setBatchOpen(true)}>
-          <PencilLine className="mr-1.5 h-4 w-4" />
-          批次更新庫存
-        </Button>
+        <>
+          <Button variant="outline" size="sm" onClick={() => setBatchOpen(true)}>
+            <PencilLine className="mr-1.5 h-4 w-4" />
+            批次更新庫存
+          </Button>
+          <InventoryBatchEditDialog
+            open={batchOpen}
+            onOpenChange={setBatchOpen}
+            deficits={deficits}
+            allDrugs={allDrugs}
+          />
+        </>
       )}
-      <InventoryBatchEditDialog
-        open={batchOpen}
-        onOpenChange={setBatchOpen}
-        deficits={deficits}
-        allDrugs={allDrugs}
-      />
     </div>
   )
 }
