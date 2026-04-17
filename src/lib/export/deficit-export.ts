@@ -115,6 +115,16 @@ export async function exportDeficitsToXLSX(deltas: DrugInventoryDelta[]) {
   }
 }
 
+type AutoTableCell =
+  | string
+  | number
+  | {
+      content: string
+      colSpan?: number
+      rowSpan?: number
+      styles?: Record<string, unknown>
+    }
+
 export async function exportDeficitsToPDF(deltas: DrugInventoryDelta[]) {
   const rows = filterShortage(deltas)
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
@@ -127,7 +137,7 @@ export async function exportDeficitsToPDF(deltas: DrugInventoryDelta[]) {
   doc.setFontSize(10)
   doc.text(`產生日期：${new Date().toLocaleDateString('zh-TW')}`, 14, 22)
 
-  const body: (string | number)[][] = []
+  const body: AutoTableCell[][] = []
   const groups = groupDeltasByCategory(rows)
   for (const group of groups) {
     body.push([
@@ -135,7 +145,7 @@ export async function exportDeficitsToPDF(deltas: DrugInventoryDelta[]) {
         content: group.label,
         colSpan: 5,
         styles: { fillColor: [232, 232, 232], fontStyle: 'bold', halign: 'center' },
-      } as any,
+      },
     ])
     for (const d of group.items) {
       const isE3D = d.ester_type === 'E3D'
