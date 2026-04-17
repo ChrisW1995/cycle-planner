@@ -35,7 +35,8 @@ export async function exportScheduleToPDF(
   totalWeeks: number,
   cells: CycleCell[],
   deltas?: DrugInventoryDelta[],
-  startDate?: string | null
+  startDate?: string | null,
+  includeTitle: boolean = true
 ) {
   const doc = new jsPDF({
     orientation: 'landscape',
@@ -55,10 +56,12 @@ export async function exportScheduleToPDF(
     if (cell.display_value) cellMap.get(key)!.push(cell.display_value)
   }
 
-  // Title
-  doc.setFont(fontName, 'normal', 'bold')
-  doc.setFontSize(18)
-  doc.text(title, 14, 15)
+  // Title (optional — still used in filename regardless)
+  if (includeTitle) {
+    doc.setFont(fontName, 'normal', 'bold')
+    doc.setFontSize(18)
+    doc.text(title, 14, 15)
+  }
 
   // Schedule table — store real entries separately, pass placeholder text for row height calculation
   const headers = ['Week', ...getDayLabels(startDate)]
@@ -112,7 +115,7 @@ export async function exportScheduleToPDF(
   }
 
   autoTable(doc, {
-    startY: 22,
+    startY: includeTitle ? 22 : 10,
     head: [headers],
     body,
     theme: 'grid',

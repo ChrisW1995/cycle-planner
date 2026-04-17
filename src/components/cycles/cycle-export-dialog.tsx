@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useCycle, useCycleCells, useCycles } from '@/hooks/use-cycles'
 import { useDrugs } from '@/hooks/use-drugs'
 import { generateAllCells } from '@/lib/calculations/schedule-engine'
@@ -10,6 +10,7 @@ import { exportScheduleToPDF } from '@/lib/export/pdf-export'
 import { formatOralInventory, getDayLabels, groupDeltasByCategory } from '@/lib/utils'
 import { statusLabels } from '@/lib/constants/cycle-status'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { FileSpreadsheet, FileText, XIcon } from 'lucide-react'
@@ -27,6 +28,7 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
   const { data: allCycles } = useCycles()
   const { data: savedCells } = useCycleCells(id)
   const { data: allDrugs } = useDrugs()
+  const [includeTitle, setIncludeTitle] = useState(true)
 
   const displayCells: CycleCell[] = useMemo(() => {
     if (!cycle?.cycle_drugs) return []
@@ -91,7 +93,7 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
   const handlePDFExport = () => {
     if (!cycle) return
     const title = buildPdfTitle()
-    exportScheduleToPDF(title, cycle.total_weeks, displayCells, inventoryDeltas, cycle.start_date)
+    exportScheduleToPDF(title, cycle.total_weeks, displayCells, inventoryDeltas, cycle.start_date, includeTitle)
   }
 
   return (
@@ -99,9 +101,15 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
       <DialogContent className="max-w-[95vw] lg:max-w-[85vw] xl:max-w-[1200px] max-h-[90vh] flex flex-col" showCloseButton={false}>
         <div className="flex items-start justify-between gap-4">
           <DialogHeader className="flex-1">
-            <DialogTitle>
-              {isLoading ? '載入中...' : (cycle?.name || `${(cycle as any)?.person?.nickname} 的課表`)}
-            </DialogTitle>
+            <div className="flex items-center gap-3 flex-wrap">
+              <DialogTitle>
+                {isLoading ? '載入中...' : (cycle?.name || `${(cycle as any)?.person?.nickname} 的課表`)}
+              </DialogTitle>
+              <div className="flex items-center gap-2">
+                <Switch checked={includeTitle} onCheckedChange={setIncludeTitle} size="sm" />
+                <span className="text-xs text-muted-foreground select-none">匯出時包含標題</span>
+              </div>
+            </div>
             {cycle && (
               <DialogDescription>
                 {cycle.total_weeks} 週
