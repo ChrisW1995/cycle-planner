@@ -2,41 +2,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { formatOralInventory, getDayLabels, groupDeltasByCategory } from '@/lib/utils'
 import type { CycleCell, DrugInventoryDelta } from '@/types'
-
-let cachedRegular: string | null = null
-let cachedBold: string | null = null
-
-async function fontToBase64(url: string): Promise<string | null> {
-  const res = await fetch(url)
-  if (!res.ok) return null
-  const buffer = await res.arrayBuffer()
-  const bytes = new Uint8Array(buffer)
-  let binary = ''
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i])
-  }
-  return btoa(binary)
-}
-
-async function loadCJKFont(doc: jsPDF): Promise<boolean> {
-  try {
-    if (!cachedRegular) cachedRegular = await fontToBase64('/fonts/NotoSansTC.ttf')
-    if (!cachedBold) cachedBold = await fontToBase64('/fonts/NotoSansTC-Bold.ttf')
-    if (!cachedRegular) return false
-    doc.addFileToVFS('NotoSansTC.ttf', cachedRegular)
-    doc.addFont('NotoSansTC.ttf', 'NotoSansTC', 'normal')
-    if (cachedBold) {
-      doc.addFileToVFS('NotoSansTC-Bold.ttf', cachedBold)
-      doc.addFont('NotoSansTC-Bold.ttf', 'NotoSansTC', 'bold')
-    } else {
-      // Fallback: register regular as bold if bold file unavailable
-      doc.addFont('NotoSansTC.ttf', 'NotoSansTC', 'bold')
-    }
-    return true
-  } catch {
-    return false
-  }
-}
+import { loadCJKFont } from './pdf-fonts'
 
 // Split "DrugName 0.8ml" or "DrugName 30mg (3)" into [name, dose]
 function splitDrugEntry(v: string): [string, string] | null {

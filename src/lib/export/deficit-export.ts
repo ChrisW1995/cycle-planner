@@ -1,8 +1,10 @@
 import ExcelJS from 'exceljs'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { toast } from 'sonner'
 import { formatOralInventory, groupDeltasByCategory } from '@/lib/utils'
 import type { DrugInventoryDelta } from '@/types'
+import { loadCJKFont } from './pdf-fonts'
 
 const HEADER_FILL: ExcelJS.FillPattern = {
   type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF282828' },
@@ -22,7 +24,7 @@ function filterShortage(deltas: DrugInventoryDelta[]): DrugInventoryDelta[] {
   return deltas.filter((d) => d.deficit < 0)
 }
 
-export function exportDeficitsToXLSX(deltas: DrugInventoryDelta[]) {
+export async function exportDeficitsToXLSX(deltas: DrugInventoryDelta[]) {
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet('藥物缺口')
   const rows = filterShortage(deltas)
@@ -93,7 +95,8 @@ export function exportDeficitsToXLSX(deltas: DrugInventoryDelta[]) {
     }
   }
 
-  wb.xlsx.writeBuffer().then((buffer) => {
+  try {
+    const buffer = await wb.xlsx.writeBuffer()
     const blob = new Blob([buffer], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     })
@@ -104,32 +107,20 @@ export function exportDeficitsToXLSX(deltas: DrugInventoryDelta[]) {
     link.download = `藥物缺口_${stamp}.xlsx`
     link.click()
     URL.revokeObjectURL(url)
-  })
+  } catch (err) {
+    console.error('Failed to export deficits XLSX:', err)
+    toast.error('匯出 XLSX 失敗', {
+      description: err instanceof Error ? err.message : String(err),
+    })
+  }
 }
 
 export async function exportDeficitsToPDF(deltas: DrugInventoryDelta[]) {
   const rows = filterShortage(deltas)
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
 
-  try {
-    const [reg, bold] = await Promise.all([
-      fetch('/fonts/NotoSansTC.ttf').then((r) => r.arrayBuffer()),
-      fetch('/fonts/NotoSansTC-Bold.ttf').then((r) => r.arrayBuffer()),
-    ])
-    const toB64 = (buf: ArrayBuffer) => {
-      const bytes = new Uint8Array(buf)
-      let s = ''
-      for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i])
-      return btoa(s)
-    }
-    doc.addFileToVFS('NotoSansTC.ttf', toB64(reg))
-    doc.addFont('NotoSansTC.ttf', 'NotoSansTC', 'normal')
-    doc.addFileToVFS('NotoSansTC-Bold.ttf', toB64(bold))
-    doc.addFont('NotoSansTC-Bold.ttf', 'NotoSansTC', 'bold')
-    doc.setFont('NotoSansTC', 'normal')
-  } catch {
-    // Fallback: helvetica — CJK will render as boxes but won't crash
-  }
+  const hasCJK = await loadCJKFont(doc)
+  if (hasCJK) doc.setFont('NotoSansTC', 'normal')
 
   doc.setFontSize(16)
   doc.text('藥物缺口清單', 14, 16)
