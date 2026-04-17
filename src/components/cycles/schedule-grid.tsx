@@ -135,7 +135,7 @@ export function ScheduleGrid({
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr>
-            <th className="sticky left-0 z-10 bg-card border border-border px-3 py-2 text-left font-medium min-w-[80px]">
+            <th className="sticky left-0 z-10 bg-card border border-border px-3 py-2 text-left font-medium min-w-[90px] whitespace-nowrap">
               Week
             </th>
             {dayLabels.map((day, i) => (
@@ -153,7 +153,7 @@ export function ScheduleGrid({
             const weekNum = weekIdx + 1
             return (
               <tr key={weekNum}>
-                <td className="sticky left-0 z-10 bg-card border border-border px-3 py-2 font-medium text-muted-foreground">
+                <td className="sticky left-0 z-10 bg-card border border-border px-3 py-2 font-medium text-muted-foreground min-w-[90px] whitespace-nowrap">
                   Week {weekNum}
                 </td>
                 {Array.from({ length: 7 }, (_, dayIdx) => {
