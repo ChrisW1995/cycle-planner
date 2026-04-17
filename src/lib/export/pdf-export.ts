@@ -349,11 +349,16 @@ export async function exportScheduleToPDF(
     const totalTablesWidth = numColumns * columnWidth + (numColumns - 1) * columnGap
     const leftStart = Math.max(10, (pageWidth - totalTablesWidth) / 2)
 
-    // Draw title once (horizontally aligned with the leftmost column)
+    // Draw title once, centered above all stats columns
     doc.setFont(fontName, 'normal', 'bold')
     doc.setFontSize(14)
     doc.setTextColor(0)
-    doc.text(hasCJK ? '藥物用量統計' : 'Drug Stats', leftStart, titleY)
+    doc.text(
+      hasCJK ? '藥物用量統計' : 'Drug Stats',
+      leftStart + totalTablesWidth / 2,
+      titleY,
+      { align: 'center' }
+    )
 
     const sliced = splitByColumns(statsBody, numColumns)
     for (let col = 0; col < numColumns; col++) {
