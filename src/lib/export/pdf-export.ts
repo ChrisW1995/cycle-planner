@@ -303,30 +303,14 @@ export async function exportScheduleToPDF(
       }
     }
 
-    // Estimate space needed — generous per-row height because bodyStyles fontSize is 10
-    // and cellPadding is 2.5 each side (total row height ~8mm). Title ~10mm + header ~9mm + rows + buffer.
-    const estimatedHeight = 10 + 9 + statsBody.length * 8 + 6
+    // Place the stats table 15mm below the schedule (title occupies 5mm above the table).
+    // pageBreak: 'avoid' keeps the table together — if it won't fit, autoTable moves
+    // the whole table to a new page. The title is drawn in willDrawPage so it always
+    // lands on the same page as the table.
     const scheduleEndY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 20
-    const pageHeight = doc.internal.pageSize.height
-    const footerReserve = 15 // footer + safe margin
-    const available = pageHeight - scheduleEndY - footerReserve
+    const tableStartY = scheduleEndY + 15
 
-    let titleY: number
-    let tableStartY: number
-    if (available >= estimatedHeight) {
-      // Fits on current page — place below schedule with a small gap
-      titleY = scheduleEndY + 10
-      tableStartY = titleY + 5
-    } else {
-      doc.addPage()
-      titleY = 15
-      tableStartY = 20
-    }
-
-    doc.setFont(fontName, 'normal', 'bold')
-    doc.setFontSize(14)
-    doc.setTextColor(0)
-    doc.text(hasCJK ? '藥物用量統計' : 'Drug Stats', 14, titleY)
+    let statsTitleDrawn = false
 
     autoTable(doc, {
       startY: tableStartY,
@@ -355,8 +339,17 @@ export async function exportScheduleToPDF(
       styles: {
         font: fontName,
       },
-      margin: { left: 10, right: 10 },
+      margin: { left: 10, right: 10, top: 20 }, // top leaves room for the title on an auto-paged new page
       tableWidth: 100,
+      willDrawPage: (data) => {
+        if (statsTitleDrawn) return
+        const startY = data.cursor?.y ?? data.settings.startY ?? 20
+        statsTitleDrawn = true
+        doc.setFont(fontName, 'normal', 'bold')
+        doc.setFontSize(14)
+        doc.setTextColor(0)
+        doc.text(hasCJK ? '藥物用量統計' : 'Drug Stats', 14, startY - 5)
+      },
     })
   }
 
