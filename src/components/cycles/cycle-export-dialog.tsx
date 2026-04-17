@@ -28,7 +28,19 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
   const { data: allCycles } = useCycles()
   const { data: savedCells } = useCycleCells(id)
   const { data: allDrugs } = useDrugs()
-  const [includeTitle, setIncludeTitle] = useState(true)
+  const [includeTitle, setIncludeTitle] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('cycle-export-include-title') !== 'false'
+    }
+    return true
+  })
+
+  const handleIncludeTitleChange = (v: boolean) => {
+    setIncludeTitle(v)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cycle-export-include-title', v ? 'true' : 'false')
+    }
+  }
 
   const displayCells: CycleCell[] = useMemo(() => {
     if (!cycle?.cycle_drugs) return []
@@ -106,7 +118,7 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
                 {isLoading ? '載入中...' : (cycle?.name || `${(cycle as any)?.person?.nickname} 的課表`)}
               </DialogTitle>
               <div className="flex items-center gap-2">
-                <Switch checked={includeTitle} onCheckedChange={setIncludeTitle} size="sm" />
+                <Switch checked={includeTitle} onCheckedChange={handleIncludeTitleChange} size="sm" />
                 <span className="text-xs text-muted-foreground select-none">匯出時包含標題</span>
               </div>
             </div>

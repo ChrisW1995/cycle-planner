@@ -303,54 +303,91 @@ export async function exportScheduleToPDF(
       }
     }
 
-    // Place the stats table 15mm below the schedule (title occupies 5mm above the table).
-    // pageBreak: 'avoid' keeps the table together — if it won't fit, autoTable moves
-    // the whole table to a new page. The title is drawn in willDrawPage so it always
-    // lands on the same page as the table.
+    // Place the stats table ~25mm below the schedule (gives a visible 1-row gap).
+    // If rows don't fit vertically, split into up to 3 side-by-side columns.
+    // Category headers are kept together with their drugs (no orphans at column boundary).
     const scheduleEndY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 20
-    const tableStartY = scheduleEndY + 15
+    const tableStartY = scheduleEndY + 25
+    const titleY = scheduleEndY + 20
 
-    let statsTitleDrawn = false
+    const rowHeight = 8.5
+    const headerHeight = 10
+    const bottomMargin = 20
+    const maxColumns = 3
+    const columnGap = 8
 
-    autoTable(doc, {
-      startY: tableStartY,
-      head: [statsHeaders],
-      body: statsBody,
-      theme: 'grid',
-      pageBreak: 'avoid', // keep the whole stats table together; if it won't fit, move to a new page
-      headStyles: {
-        fillColor: [40, 40, 40],
-        textColor: [255, 255, 255],
-        fontSize: 10,
-        halign: 'center',
-        fontStyle: 'bold',
-        font: fontName,
-      },
-      bodyStyles: {
-        fontSize: 10,
-        cellPadding: 2.5,
-        font: fontName,
-        textColor: [20, 20, 20],
-      },
-      columnStyles: {
-        0: { cellWidth: 40, fontStyle: 'bold', textColor: [20, 20, 20] },
-        1: { cellWidth: 60, halign: 'right', textColor: [100, 100, 100] },
-      },
-      styles: {
-        font: fontName,
-      },
-      margin: { left: 10, right: 10, top: 20 }, // top leaves room for the title on an auto-paged new page
-      tableWidth: 100,
-      willDrawPage: (data) => {
-        if (statsTitleDrawn) return
-        const startY = data.cursor?.y ?? data.settings.startY ?? 20
-        statsTitleDrawn = true
-        doc.setFont(fontName, 'normal', 'bold')
-        doc.setFontSize(14)
-        doc.setTextColor(0)
-        doc.text(hasCJK ? '藥物用量統計' : 'Drug Stats', 14, startY - 5)
-      },
-    })
+    const pageHeight = doc.internal.pageSize.height
+    const available = pageHeight - tableStartY - bottomMargin
+    const rowsPerCol = Math.max(1, Math.floor((available - headerHeight) / rowHeight))
+
+    const totalRows = statsBody.length
+    const numColumns = Math.min(maxColumns, Math.max(1, Math.ceil(totalRows / rowsPerCol)))
+    const columnWidth = numColumns === 3 ? 88 : 100
+
+    type StatsRow = typeof statsBody[number]
+    const isCategoryRow = (row: StatsRow): boolean =>
+      row.length === 1 && typeof row[0] === 'object' && row[0] !== null && 'colSpan' in (row[0] as object)
+
+    const splitByColumns = (rows: StatsRow[], n: number): StatsRow[][] => {
+      const cols: StatsRow[][] = Array.from({ length: n }, () => [])
+      const target = Math.ceil(rows.length / n)
+      let i = 0
+      for (let c = 0; c < n; c++) {
+        const tentativeEnd = Math.min(i + target, rows.length)
+        let actualEnd = tentativeEnd
+        // Avoid leaving a category header as the last row in a column
+        while (actualEnd > i + 1 && isCategoryRow(rows[actualEnd - 1])) actualEnd--
+        cols[c] = rows.slice(i, actualEnd)
+        i = actualEnd
+        if (i >= rows.length) break
+      }
+      // Append any leftover rows (due to shrinking) to the last column
+      if (i < rows.length) cols[n - 1] = cols[n - 1].concat(rows.slice(i))
+      return cols
+    }
+
+    const totalTablesWidth = numColumns * columnWidth + (numColumns - 1) * columnGap
+    const leftStart = Math.max(10, (pageWidth - totalTablesWidth) / 2)
+
+    // Draw title once (horizontally aligned with the leftmost column)
+    doc.setFont(fontName, 'normal', 'bold')
+    doc.setFontSize(14)
+    doc.setTextColor(0)
+    doc.text(hasCJK ? '藥物用量統計' : 'Drug Stats', leftStart, titleY)
+
+    const sliced = splitByColumns(statsBody, numColumns)
+    for (let col = 0; col < numColumns; col++) {
+      if (sliced[col].length === 0) continue
+      autoTable(doc, {
+        startY: tableStartY,
+        head: [statsHeaders],
+        body: sliced[col],
+        theme: 'grid',
+        headStyles: {
+          fillColor: [40, 40, 40],
+          textColor: [255, 255, 255],
+          fontSize: 10,
+          halign: 'center',
+          fontStyle: 'bold',
+          font: fontName,
+        },
+        bodyStyles: {
+          fontSize: 10,
+          cellPadding: 2.5,
+          font: fontName,
+          textColor: [20, 20, 20],
+        },
+        columnStyles: {
+          0: { cellWidth: columnWidth * 0.4, fontStyle: 'bold', textColor: [20, 20, 20] },
+          1: { cellWidth: columnWidth * 0.6, halign: 'right', textColor: [100, 100, 100] },
+        },
+        styles: {
+          font: fontName,
+        },
+        margin: { left: leftStart + col * (columnWidth + columnGap), right: 0, top: 20 },
+        tableWidth: columnWidth,
+      })
+    }
   }
 
   doc.save(`${title.replace(/[/\\?%*:|"<>]/g, '_')}.pdf`)
