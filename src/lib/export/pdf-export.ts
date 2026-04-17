@@ -68,21 +68,27 @@ export async function exportScheduleToPDF(
   const body: string[][] = []
 
   const fontSize = 9
+  const shrunkDoseFontSize = 7.5
   const entrySpacing = 3.8 // mm between each drug entry
   const padding = 2
   const gap = 1.5
-  const dayCellWidth = 35
+  const dayCellWidth = 37
+  const weekColWidth = 18
   const dayContentWidth = dayCellWidth - 2 * padding
+  const scheduleTableWidth = weekColWidth + 7 * dayCellWidth
+  const pageWidth = doc.internal.pageSize.width
+  const scheduleHMargin = Math.max(8, (pageWidth - scheduleTableWidth) / 2)
 
   interface EntryLayout {
     name: string
     dose: string
     wrapped: boolean
+    doseFontSize: number
     hasParts: boolean
   }
   const entryLayoutsMap = new Map<string, EntryLayout[]>()
 
-  // Pre-pass: measure each entry and decide whether it needs 2 lines
+  // Pre-pass: measure each entry, decide whether to use normal/shrunk dose or 2-line wrap
   doc.setFontSize(fontSize)
   doc.setFont(fontName, 'normal', 'bold')
 
@@ -97,13 +103,33 @@ export async function exportScheduleToPDF(
         const parts = splitDrugEntry(entry)
         if (parts) {
           const [name, dose] = parts
+
+          doc.setFontSize(fontSize)
           const nameWidth = doc.getTextWidth(name)
-          const doseWidth = doc.getTextWidth(dose)
-          const wrapped = nameWidth + doseWidth + gap > dayContentWidth
-          layouts.push({ name, dose, wrapped, hasParts: true })
-          displayLines.push(wrapped ? `${name}\n${dose}` : entry)
+          const doseWidthNormal = doc.getTextWidth(dose)
+
+          // Tier 1: single line at normal font
+          if (nameWidth + doseWidthNormal + gap <= dayContentWidth) {
+            layouts.push({ name, dose, wrapped: false, doseFontSize: fontSize, hasParts: true })
+            displayLines.push(entry)
+            continue
+          }
+
+          // Tier 2: single line with shrunken dose font
+          doc.setFontSize(shrunkDoseFontSize)
+          const doseWidthShrunk = doc.getTextWidth(dose)
+          doc.setFontSize(fontSize)
+          if (nameWidth + doseWidthShrunk + gap <= dayContentWidth) {
+            layouts.push({ name, dose, wrapped: false, doseFontSize: shrunkDoseFontSize, hasParts: true })
+            displayLines.push(entry)
+            continue
+          }
+
+          // Tier 3: wrap to two lines
+          layouts.push({ name, dose, wrapped: true, doseFontSize: fontSize, hasParts: true })
+          displayLines.push(`${name}\n${dose}`)
         } else {
-          layouts.push({ name: entry, dose: '', wrapped: false, hasParts: false })
+          layouts.push({ name: entry, dose: '', wrapped: false, doseFontSize: fontSize, hasParts: false })
           displayLines.push(entry)
         }
       }
@@ -136,21 +162,21 @@ export async function exportScheduleToPDF(
       textColor: [200, 200, 200], // light placeholder text — overdrawn by didDrawCell
     },
     columnStyles: {
-      0: { cellWidth: 20, halign: 'center', valign: 'middle', fontStyle: 'bold', textColor: [20, 20, 20] },
-      1: { cellWidth: 35 },
-      2: { cellWidth: 35 },
-      3: { cellWidth: 35 },
-      4: { cellWidth: 35 },
-      5: { cellWidth: 35 },
-      6: { cellWidth: 35 },
-      7: { cellWidth: 35 },
+      0: { cellWidth: weekColWidth, halign: 'center', valign: 'middle', fontStyle: 'bold', textColor: [20, 20, 20] },
+      1: { cellWidth: dayCellWidth },
+      2: { cellWidth: dayCellWidth },
+      3: { cellWidth: dayCellWidth },
+      4: { cellWidth: dayCellWidth },
+      5: { cellWidth: dayCellWidth },
+      6: { cellWidth: dayCellWidth },
+      7: { cellWidth: dayCellWidth },
     },
     styles: {
       overflow: 'linebreak',
       cellWidth: 'wrap',
       font: fontName,
     },
-    margin: { left: 10, right: 10 },
+    margin: { left: scheduleHMargin, right: scheduleHMargin },
     didDrawCell: (data) => {
       // Only custom-draw body cells for day columns (not Week column)
       if (data.section !== 'body' || data.column.index === 0) return
@@ -217,10 +243,14 @@ export async function exportScheduleToPDF(
             y += entrySpacing
           } else {
             doc.setFont(fontName, 'normal', 'bold')
+            doc.setFontSize(fontSize)
             doc.setTextColor(20, 20, 20)
             doc.text(l.name, x, y)
+            const restoreFont = l.doseFontSize !== fontSize
+            if (restoreFont) doc.setFontSize(l.doseFontSize)
             doc.setTextColor(120, 120, 120)
             doc.text(l.dose, xRight, y, { align: 'right' })
+            if (restoreFont) doc.setFontSize(fontSize)
             y += entrySpacing
           }
         } else {
