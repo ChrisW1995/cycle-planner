@@ -36,11 +36,15 @@ export function buildSupplySummaries(
   totalWeeks: number,
   injectionEventCount: number
 ): SupplySummary[] {
-  const byId = new Map(supplies.map((s) => [s.id, s]))
+  // Iterate `supplies` (already sorted by display_order) and pick out the
+  // selected ones, so the output order in the export matches the order the
+  // user dragged in the dialog. Iterating `selected` instead would follow
+  // Postgres's arbitrary cycle_supplies row order.
+  const selectedById = new Map(selected.map((cs) => [cs.supply_id, cs]))
   const summaries: SupplySummary[] = []
-  for (const cs of selected) {
-    const s = byId.get(cs.supply_id)
-    if (!s) continue
+  for (const s of supplies) {
+    const cs = selectedById.get(s.id)
+    if (!cs) continue
     const auto = computeSupplyQuantity(s, totalWeeks, injectionEventCount)
     summaries.push({
       name: s.name,

@@ -102,7 +102,10 @@ export function ExportSuppliesSection({
       const rect = row.getBoundingClientRect()
       e.dataTransfer.setDragImage(row, e.clientX - rect.left, e.clientY - rect.top)
     }
-    setDraggingId(id)
+    // Defer the source-row dimming to the next frame. If we set state here,
+    // React commits opacity-40 before Chrome captures the drag image — and
+    // the captured ghost ends up nearly invisible.
+    requestAnimationFrame(() => setDraggingId(id))
   }
   const handleDragEnd = () => {
     setDraggingId(null)
