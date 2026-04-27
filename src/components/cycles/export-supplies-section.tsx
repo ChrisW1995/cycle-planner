@@ -124,6 +124,14 @@ export function ExportSuppliesSection({
                 />
                 <div className="flex items-baseline gap-2 min-w-0 flex-1">
                   <span className="font-medium truncate">{s.name}</span>
+                  {s.is_system && (
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground whitespace-nowrap leading-none"
+                      title="系統預設用具"
+                    >
+                      預設
+                    </span>
+                  )}
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
                     {ruleSummary}
                   </span>
@@ -158,9 +166,10 @@ export function ExportSuppliesSection({
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => {
-                      if (confirm(`確定要刪除用具「${s.name}」嗎？\n刪除後可隨時點「+ 新增用具」再次建立。`)) {
-                        deleteSupply.mutate(s.id)
-                      }
+                      const msg = s.is_system
+                        ? `「${s.name}」是系統預設用具，確定要刪除嗎？\n刪除後可隨時點「+ 新增用具」再次建立。`
+                        : `確定要刪除用具「${s.name}」嗎？\n刪除後可隨時點「+ 新增用具」再次建立。`
+                      if (confirm(msg)) deleteSupply.mutate(s.id)
                     }}
                     aria-label={`刪除「${s.name}」`}
                     title={`刪除「${s.name}」`}
