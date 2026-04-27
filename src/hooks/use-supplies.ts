@@ -72,3 +72,42 @@ export function useDeleteSupply() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['supplies'], refetchType: 'all' }),
   })
 }
+
+// Re-number display_order with gaps of 10 so future single-item moves can squeeze in.
+export function useReorderSupplies() {
+  const qc = useQueryClient()
+  return useMutation<void, Error, string[], { previous?: Supply[] }>({
+    mutationFn: async (orderedIds: string[]) => {
+      const updates = orderedIds.map((id, idx) => ({ id, display_order: (idx + 1) * 10 }))
+      const results = await Promise.all(
+        updates.map((u) =>
+          supabase
+            .from('supplies')
+            .update({ display_order: u.display_order, updated_at: new Date().toISOString() })
+            .eq('id', u.id)
+        )
+      )
+      const firstError = results.find((r) => r.error)?.error
+      if (firstError) throw firstError
+    },
+    onMutate: async (orderedIds) => {
+      await qc.cancelQueries({ queryKey: ['supplies'] })
+      const previous = qc.getQueryData<Supply[]>(['supplies'])
+      if (previous) {
+        const byId = new Map(previous.map((s) => [s.id, s]))
+        const reordered = orderedIds
+          .map((id, idx) => {
+            const s = byId.get(id)
+            return s ? { ...s, display_order: (idx + 1) * 10 } : null
+          })
+          .filter((x): x is Supply => x !== null)
+        qc.setQueryData(['supplies'], reordered)
+      }
+      return { previous }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(['supplies'], ctx.previous)
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['supplies'] }),
+  })
+}

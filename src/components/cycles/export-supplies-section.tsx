@@ -6,6 +6,7 @@ import {
   useCreateSupply,
   useUpdateSupply,
   useDeleteSupply,
+  useReorderSupplies,
   type SupplyInput,
 } from '@/hooks/use-supplies'
 import {
@@ -25,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Pencil, Trash2, Plus, Check, X } from 'lucide-react'
+import { Pencil, Trash2, Plus, Check, X, GripVertical } from 'lucide-react'
 import type { Supply, SupplyRuleType } from '@/types'
 
 const RULE_LABELS: Record<SupplyRuleType, string> = {
@@ -62,9 +63,11 @@ export function ExportSuppliesSection({
   const createSupply = useCreateSupply()
   const updateSupply = useUpdateSupply()
   const deleteSupply = useDeleteSupply()
+  const reorder = useReorderSupplies()
 
   const [addingNew, setAddingNew] = useState(false)
   const [editing, setEditing] = useState<Supply | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
 
   const supplies = suppliesData ?? EMPTY_SUPPLIES
   const cycleSupplies = cycleSuppliesData ?? EMPTY_CYCLE_SUPPLIES
@@ -85,6 +88,31 @@ export function ExportSuppliesSection({
   const handleOverrideChange = (s: Supply, raw: string) => {
     const val = raw.trim() === '' ? null : Number(raw)
     upsert.mutate({ cycle_id: cycleId, supply_id: s.id, override_quantity: val })
+  }
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    e.dataTransfer.setData('text/supply-id', id)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    if (!e.dataTransfer.types.includes('text/supply-id')) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverId(id)
+  }
+  const handleDragLeave = () => setDragOverId(null)
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault()
+    setDragOverId(null)
+    const sourceId = e.dataTransfer.getData('text/supply-id')
+    if (!sourceId || sourceId === targetId) return
+    const sourceIdx = supplies.findIndex((s) => s.id === sourceId)
+    const targetIdx = supplies.findIndex((s) => s.id === targetId)
+    if (sourceIdx < 0 || targetIdx < 0) return
+    const next = [...supplies]
+    const [moved] = next.splice(sourceIdx, 1)
+    next.splice(targetIdx, 0, moved)
+    reorder.mutate(next.map((s) => s.id))
   }
 
   return (
@@ -114,8 +142,26 @@ export function ExportSuppliesSection({
                 : s.rule_value === 1
                   ? `${RULE_LABELS[s.rule_type]} 1`
                   : `${RULE_LABELS[s.rule_type]} ${s.rule_value}`
+            const isDropTarget = dragOverId === s.id
             return (
-              <div key={s.id} className="flex items-center gap-2 text-sm py-1">
+              <div
+                key={s.id}
+                onDragOver={(e) => handleDragOver(e, s.id)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, s.id)}
+                className={`flex items-center gap-2 text-sm py-1 ${isDropTarget ? 'border-t-2 border-primary -mt-px' : 'border-t-2 border-transparent -mt-px'}`}
+              >
+                <div
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, s.id)}
+                  className="cursor-grab active:cursor-grabbing text-muted-foreground/60 hover:text-foreground shrink-0 select-none"
+                  aria-label={`拖曳重排「${s.name}」`}
+                  title="拖曳重排"
+                  role="button"
+                  tabIndex={-1}
+                >
+                  <GripVertical className="h-4 w-4" />
+                </div>
                 <input
                   type="checkbox"
                   className="h-4 w-4 cursor-pointer shrink-0"
