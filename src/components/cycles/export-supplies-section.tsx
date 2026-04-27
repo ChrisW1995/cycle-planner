@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   useSupplies,
   useCreateSupply,
@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Pencil, Trash2, Plus, Check, X } from 'lucide-react'
-import type { Supply, SupplySummary, SupplyRuleType } from '@/types'
+import type { Supply, SupplyRuleType } from '@/types'
 
 const RULE_LABELS: Record<SupplyRuleType, string> = {
   per_injection: '每次注射 ×',
@@ -35,13 +35,17 @@ const RULE_LABELS: Record<SupplyRuleType, string> = {
   fixed: '整個週期固定',
 }
 
+// Stable references so consumers using these as defaults don't trigger
+// useEffect / useMemo loops on every render.
+const EMPTY_SUPPLIES: Supply[] = []
+const EMPTY_CYCLE_SUPPLIES: import('@/types').CycleSupply[] = []
+
 interface Props {
   cycleId: string
   totalWeeks: number
   injectionEventCount: number
   enabled: boolean
   onEnabledChange: (v: boolean) => void
-  onSummariesChange: (summaries: SupplySummary[]) => void
 }
 
 export function ExportSuppliesSection({
@@ -50,10 +54,9 @@ export function ExportSuppliesSection({
   injectionEventCount,
   enabled,
   onEnabledChange,
-  onSummariesChange,
 }: Props) {
-  const { data: supplies = [] } = useSupplies()
-  const { data: cycleSupplies = [] } = useCycleSupplies(cycleId)
+  const { data: suppliesData } = useSupplies()
+  const { data: cycleSuppliesData } = useCycleSupplies(cycleId)
   const upsert = useUpsertCycleSupply()
   const removeSel = useDeleteCycleSupply()
   const createSupply = useCreateSupply()
@@ -63,26 +66,13 @@ export function ExportSuppliesSection({
   const [addingNew, setAddingNew] = useState(false)
   const [editing, setEditing] = useState<Supply | null>(null)
 
+  const supplies = suppliesData ?? EMPTY_SUPPLIES
+  const cycleSupplies = cycleSuppliesData ?? EMPTY_CYCLE_SUPPLIES
+
   const selectedMap = useMemo(
     () => new Map(cycleSupplies.map((cs) => [cs.supply_id, cs])),
     [cycleSupplies]
   )
-
-  // Push computed summaries up so the parent can hand them to the export functions.
-  useEffect(() => {
-    if (!enabled) {
-      onSummariesChange([])
-      return
-    }
-    const out: SupplySummary[] = []
-    for (const cs of cycleSupplies) {
-      const s = supplies.find((x) => x.id === cs.supply_id)
-      if (!s) continue
-      const auto = computeSupplyQuantity(s, totalWeeks, injectionEventCount)
-      out.push({ name: s.name, unit: s.unit, quantity: cs.override_quantity ?? auto })
-    }
-    onSummariesChange(out)
-  }, [enabled, supplies, cycleSupplies, totalWeeks, injectionEventCount, onSummariesChange])
 
   const handleToggleSupply = (s: Supply, checked: boolean) => {
     if (checked) {

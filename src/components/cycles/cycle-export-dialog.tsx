@@ -5,18 +5,20 @@ import { useCycle, useCycleCells, useCycles } from '@/hooks/use-cycles'
 import { useDrugs } from '@/hooks/use-drugs'
 import { generateAllCells } from '@/lib/calculations/schedule-engine'
 import { calculateInventoryDeltas, adjustDeltasForSkippedCells } from '@/lib/calculations/vial-calculator'
-import { countInjectionEvents } from '@/lib/calculations/supply-calculator'
+import { buildSupplySummaries, countInjectionEvents } from '@/lib/calculations/supply-calculator'
 import { exportScheduleToXLSX } from '@/lib/export/xlsx-export'
 import { exportScheduleToPDF } from '@/lib/export/pdf-export'
 import { formatOralInventory, getDayLabels, groupDeltasByCategory } from '@/lib/utils'
 import { statusLabels } from '@/lib/constants/cycle-status'
+import { useSupplies } from '@/hooks/use-supplies'
+import { useCycleSupplies } from '@/hooks/use-cycle-supplies'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ExportSuppliesSection } from './export-supplies-section'
 import { FileSpreadsheet, FileText, XIcon } from 'lucide-react'
-import type { CycleCell, SupplySummary } from '@/types'
+import type { CycleCell } from '@/types'
 
 
 interface CycleExportDialogProps {
@@ -56,7 +58,8 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
       localStorage.setItem('cycle-export-include-supplies', v ? 'true' : 'false')
     }
   }
-  const [supplySummaries, setSupplySummaries] = useState<SupplySummary[]>([])
+  const { data: allSupplies } = useSupplies()
+  const { data: cycleSupplies } = useCycleSupplies(id)
 
   const displayCells: CycleCell[] = useMemo(() => {
     if (!cycle?.cycle_drugs) return []
@@ -97,6 +100,11 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
     if (!cycle?.cycle_drugs) return 0
     return countInjectionEvents(displayCells, cycle.cycle_drugs as any)
   }, [displayCells, cycle])
+
+  const supplySummaries = useMemo(() => {
+    if (!includeSupplies || !allSupplies || !cycleSupplies || !cycle) return []
+    return buildSupplySummaries(cycleSupplies, allSupplies, cycle.total_weeks, injectionEventCount)
+  }, [includeSupplies, allSupplies, cycleSupplies, cycle, injectionEventCount])
 
   const buildPdfTitle = () => {
     if (!cycle) return 'Cycle'
@@ -224,7 +232,6 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
               injectionEventCount={injectionEventCount}
               enabled={includeSupplies}
               onEnabledChange={handleIncludeSuppliesChange}
-              onSummariesChange={setSupplySummaries}
             />
 
             {inventoryDeltas.length > 0 && (
