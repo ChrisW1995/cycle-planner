@@ -68,6 +68,7 @@ export function ExportSuppliesSection({
   const [addingNew, setAddingNew] = useState(false)
   const [editing, setEditing] = useState<Supply | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
 
   const supplies = suppliesData ?? EMPTY_SUPPLIES
   const cycleSupplies = cycleSuppliesData ?? EMPTY_CYCLE_SUPPLIES
@@ -93,6 +94,19 @@ export function ExportSuppliesSection({
   const handleDragStart = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('text/supply-id', id)
     e.dataTransfer.effectAllowed = 'move'
+    // Use the row container (the closest [data-supply-row]) as the drag ghost
+    // so the user sees the whole row floating translucently — not just the
+    // tiny grip icon. Without this, the browser's drag image is the handle.
+    const row = (e.currentTarget as HTMLElement).closest<HTMLElement>('[data-supply-row]')
+    if (row) {
+      const rect = row.getBoundingClientRect()
+      e.dataTransfer.setDragImage(row, e.clientX - rect.left, e.clientY - rect.top)
+    }
+    setDraggingId(id)
+  }
+  const handleDragEnd = () => {
+    setDraggingId(null)
+    setDragOverId(null)
   }
   const handleDragOver = (e: React.DragEvent, id: string) => {
     if (!e.dataTransfer.types.includes('text/supply-id')) return
@@ -104,6 +118,7 @@ export function ExportSuppliesSection({
   const handleDrop = (e: React.DragEvent, targetId: string) => {
     e.preventDefault()
     setDragOverId(null)
+    setDraggingId(null)
     const sourceId = e.dataTransfer.getData('text/supply-id')
     if (!sourceId || sourceId === targetId) return
     const sourceIdx = supplies.findIndex((s) => s.id === sourceId)
@@ -143,17 +158,20 @@ export function ExportSuppliesSection({
                   ? `${RULE_LABELS[s.rule_type]} 1`
                   : `${RULE_LABELS[s.rule_type]} ${s.rule_value}`
             const isDropTarget = dragOverId === s.id
+            const isDragging = draggingId === s.id
             return (
               <div
                 key={s.id}
+                data-supply-row={s.id}
                 onDragOver={(e) => handleDragOver(e, s.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, s.id)}
-                className={`flex items-center gap-2 text-sm py-1 ${isDropTarget ? 'border-t-2 border-primary -mt-px' : 'border-t-2 border-transparent -mt-px'}`}
+                className={`flex items-center gap-2 text-sm py-1 transition-opacity ${isDropTarget ? 'border-t-2 border-primary -mt-px' : 'border-t-2 border-transparent -mt-px'} ${isDragging ? 'opacity-40' : ''}`}
               >
                 <div
                   draggable
                   onDragStart={(e) => handleDragStart(e, s.id)}
+                  onDragEnd={handleDragEnd}
                   className="cursor-grab active:cursor-grabbing text-muted-foreground/60 hover:text-foreground shrink-0 select-none"
                   aria-label={`拖曳重排「${s.name}」`}
                   title="拖曳重排"
