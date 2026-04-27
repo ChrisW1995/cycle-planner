@@ -108,20 +108,29 @@ export function ExportSuppliesSection({
             const sel = selectedMap.get(s.id)
             const checked = !!sel
             const auto = computeSupplyQuantity(s, totalWeeks, injectionEventCount)
+            const ruleSummary =
+              s.rule_type === 'fixed'
+                ? `${RULE_LABELS.fixed} ${s.rule_value}`
+                : s.rule_value === 1
+                  ? `${RULE_LABELS[s.rule_type]} 1`
+                  : `${RULE_LABELS[s.rule_type]} ${s.rule_value}`
             return (
               <div key={s.id} className="flex items-center gap-2 text-sm py-1">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 cursor-pointer"
+                  className="h-4 w-4 cursor-pointer shrink-0"
                   checked={checked}
                   onChange={(e) => handleToggleSupply(s, e.target.checked)}
                 />
-                <span className="flex-1 font-medium">{s.name}</span>
-                {checked ? (
-                  <>
-                    <span className="text-xs text-muted-foreground">
-                      自動 {auto}
-                    </span>
+                <div className="flex items-baseline gap-2 min-w-0 flex-1">
+                  <span className="font-medium truncate">{s.name}</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {ruleSummary}
+                  </span>
+                </div>
+                {checked && (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-xs text-muted-foreground">自動 {auto}</span>
                     <Input
                       type="number"
                       min={0}
@@ -130,23 +139,18 @@ export function ExportSuppliesSection({
                       value={sel?.override_quantity ?? ''}
                       onChange={(e) => handleOverrideChange(s, e.target.value)}
                     />
-                    <span className="text-xs w-8">{s.unit}</span>
-                  </>
-                ) : (
-                  <span className="text-xs text-muted-foreground w-32 text-right">
-                    {RULE_LABELS[s.rule_type]}
-                    {s.rule_type !== 'fixed' && s.rule_value !== 1 ? s.rule_value : ''}
-                    {s.rule_type === 'fixed' ? ` ${s.rule_value}` : ''}
-                  </span>
+                    <span className="text-xs w-6">{s.unit}</span>
+                  </div>
                 )}
                 {!s.is_system && (
-                  <>
+                  <div className="flex items-center gap-0.5 shrink-0 ml-1 pl-2 border-l">
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon-sm"
                       onClick={() => setEditing(s)}
-                      aria-label="編輯用具"
+                      aria-label={`編輯「${s.name}」`}
+                      title={`編輯「${s.name}」`}
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
@@ -155,13 +159,17 @@ export function ExportSuppliesSection({
                       variant="ghost"
                       size="icon-sm"
                       onClick={() => {
-                        if (confirm(`刪除「${s.name}」？`)) deleteSupply.mutate(s.id)
+                        if (confirm(`確定要刪除用具「${s.name}」嗎？\n（不會影響其他課表已選的記錄）`)) {
+                          deleteSupply.mutate(s.id)
+                        }
                       }}
-                      aria-label="刪除用具"
+                      aria-label={`刪除「${s.name}」`}
+                      title={`刪除「${s.name}」`}
+                      className="text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
-                  </>
+                  </div>
                 )}
               </div>
             )
