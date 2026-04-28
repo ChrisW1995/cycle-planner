@@ -32,24 +32,27 @@ export function computeSupplyQuantity(
 
 export function buildSupplySummaries(
   selected: CycleSupply[],
+  overrides: Record<string, number | null>,
   supplies: Supply[],
   totalWeeks: number,
   injectionEventCount: number
 ): SupplySummary[] {
   // Iterate `supplies` (already sorted by display_order) and pick out the
   // selected ones, so the output order in the export matches the order the
-  // user dragged in the dialog. Iterating `selected` instead would follow
-  // Postgres's arbitrary cycle_supplies row order.
-  const selectedById = new Map(selected.map((cs) => [cs.supply_id, cs]))
+  // user dragged in the dialog. `overrides` is a per-export local map keyed
+  // by supply_id; if a supply has an entry in `overrides` it wins over the
+  // auto-computed quantity. Override values are not persisted to DB — the
+  // caller (cycle-export-dialog) owns this transient state.
+  const selectedIds = new Set(selected.map((cs) => cs.supply_id))
   const summaries: SupplySummary[] = []
   for (const s of supplies) {
-    const cs = selectedById.get(s.id)
-    if (!cs) continue
+    if (!selectedIds.has(s.id)) continue
     const auto = computeSupplyQuantity(s, totalWeeks, injectionEventCount)
+    const ov = overrides[s.id]
     summaries.push({
       name: s.name,
       unit: s.unit,
-      quantity: cs.override_quantity ?? auto,
+      quantity: ov !== undefined && ov !== null ? ov : auto,
     })
   }
   return summaries

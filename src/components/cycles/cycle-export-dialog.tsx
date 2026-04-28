@@ -60,6 +60,20 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
   }
   const { data: allSupplies } = useSupplies()
   const { data: cycleSupplies } = useCycleSupplies(id)
+  // Override quantities are a per-export tweak — kept in local state, not
+  // persisted to DB. Lost when the dialog unmounts; that's by design.
+  const [supplyOverrides, setSupplyOverrides] = useState<Record<string, string>>({})
+
+  const overridesNumeric = useMemo(() => {
+    const out: Record<string, number | null> = {}
+    for (const [id, raw] of Object.entries(supplyOverrides)) {
+      const trimmed = raw.trim()
+      if (trimmed === '') continue
+      const n = Number(trimmed)
+      if (!Number.isNaN(n)) out[id] = n
+    }
+    return out
+  }, [supplyOverrides])
 
   const displayCells: CycleCell[] = useMemo(() => {
     if (!cycle?.cycle_drugs) return []
@@ -103,8 +117,14 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
 
   const supplySummaries = useMemo(() => {
     if (!includeSupplies || !allSupplies || !cycleSupplies || !cycle) return []
-    return buildSupplySummaries(cycleSupplies, allSupplies, cycle.total_weeks, injectionEventCount)
-  }, [includeSupplies, allSupplies, cycleSupplies, cycle, injectionEventCount])
+    return buildSupplySummaries(
+      cycleSupplies,
+      overridesNumeric,
+      allSupplies,
+      cycle.total_weeks,
+      injectionEventCount
+    )
+  }, [includeSupplies, allSupplies, cycleSupplies, overridesNumeric, cycle, injectionEventCount])
 
   const buildPdfTitle = () => {
     if (!cycle) return 'Cycle'
@@ -232,6 +252,8 @@ export function CycleExportDialog({ id, open, onOpenChange }: CycleExportDialogP
               injectionEventCount={injectionEventCount}
               enabled={includeSupplies}
               onEnabledChange={handleIncludeSuppliesChange}
+              overrides={supplyOverrides}
+              onOverridesChange={setSupplyOverrides}
             />
 
             {inventoryDeltas.length > 0 && (

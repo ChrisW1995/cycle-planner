@@ -24,7 +24,6 @@ export function useCycleSupplies(cycleId: string | undefined) {
 export interface UpsertCycleSupplyInput {
   cycle_id: string
   supply_id: string
-  override_quantity?: number | null
 }
 
 export function useUpsertCycleSupply() {
@@ -34,11 +33,7 @@ export function useUpsertCycleSupply() {
       const { data, error } = await supabase
         .from('cycle_supplies')
         .upsert(
-          {
-            cycle_id: input.cycle_id,
-            supply_id: input.supply_id,
-            override_quantity: input.override_quantity ?? null,
-          },
+          { cycle_id: input.cycle_id, supply_id: input.supply_id },
           { onConflict: 'cycle_id,supply_id' }
         )
         .select()
