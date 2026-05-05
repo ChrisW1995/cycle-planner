@@ -6,8 +6,30 @@ interface DrugInfo {
   name: string
   concentration: number
   primary_category: string
+  sub_category?: string | null
   ester_type: EsterType | null
   unit?: string
+}
+
+// Sort orders kept here so cell rendering and the inventory summary table
+// agree on layout. 'Other' last matches the user preference of pushing
+// auxiliary drugs (e.g. isotretinoin) to the end of each category.
+const PRIMARY_CATEGORY_ORDER: Record<string, number> = { Injectable: 0, Oral: 1, PCT: 2 }
+const SUB_CATEGORY_ORDER: Record<string, number> = {
+  Test: 0, 'Nor-19': 1, DHT: 2, AI: 3, SERM: 4, Prolactin: 5, Other: 6,
+}
+
+export function compareDrugForDisplay(
+  a: { primary_category: string; sub_category?: string | null; name: string },
+  b: { primary_category: string; sub_category?: string | null; name: string }
+): number {
+  const pa = PRIMARY_CATEGORY_ORDER[a.primary_category] ?? 9
+  const pb = PRIMARY_CATEGORY_ORDER[b.primary_category] ?? 9
+  if (pa !== pb) return pa - pb
+  const sa = SUB_CATEGORY_ORDER[a.sub_category ?? 'Other'] ?? 6
+  const sb = SUB_CATEGORY_ORDER[b.sub_category ?? 'Other'] ?? 6
+  if (sa !== sb) return sa - sb
+  return a.name.localeCompare(b.name)
 }
 
 interface CellData {
@@ -210,11 +232,7 @@ export function generateAllCells(
 ): CellData[] {
   const allCells: CellData[] = []
 
-  // Sort: Injectable → Oral → PCT (AI/SERM/Other)
-  const sorted = [...cycleDrugs].sort((a, b) => {
-    const order: Record<string, number> = { Injectable: 0, Oral: 1, PCT: 2 }
-    return (order[a.drug.primary_category] ?? 9) - (order[b.drug.primary_category] ?? 9)
-  })
+  const sorted = [...cycleDrugs].sort((a, b) => compareDrugForDisplay(a.drug, b.drug))
 
   for (const cd of sorted) {
     const generated = generateCellsForDrug(cd, totalWeeks)

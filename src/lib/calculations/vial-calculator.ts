@@ -1,10 +1,12 @@
 import type { CycleDrug, CycleCell, Drug, DrugInventoryDelta } from '@/types'
+import { compareDrugForDisplay } from './schedule-engine'
 
 interface DrugWithInventory {
   id: string
   name: string
   concentration: number
   primary_category: string
+  sub_category?: string | null
   ester_type: string | null
   template_id?: string | null
   inventory_count: number
@@ -121,12 +123,16 @@ export function calculateInventoryDeltas(
     }
   }
 
-  // Sort: Injectable → Oral → PCT (E3D drugs always count as PCT)
-  const categoryOrder: Record<string, number> = { Injectable: 0, Oral: 1, PCT: 2 }
+  // E3D drugs (e.g. HCG) always group under PCT regardless of their stored
+  // primary_category, so the summary table treats them as PCT companions.
   const resolveCategory = (drug: DrugWithInventory) =>
     drug.ester_type === 'E3D' ? 'PCT' : drug.primary_category
   const sortedEntries = Array.from(drugMap.entries()).sort(
-    ([, a], [, b]) => (categoryOrder[resolveCategory(a.drug)] ?? 9) - (categoryOrder[resolveCategory(b.drug)] ?? 9)
+    ([, a], [, b]) =>
+      compareDrugForDisplay(
+        { primary_category: resolveCategory(a.drug), sub_category: a.drug.sub_category, name: a.drug.name },
+        { primary_category: resolveCategory(b.drug), sub_category: b.drug.sub_category, name: b.drug.name }
+      )
   )
 
   return sortedEntries.map(([drugId, { totalAmount, drug, vialCount }]) => {
