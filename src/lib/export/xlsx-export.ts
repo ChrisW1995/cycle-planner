@@ -114,9 +114,11 @@ export function exportScheduleToXLSX(
 
     // Find max entries in any day this week for row height
     let maxEntries = 0
+    let minEntries = Infinity
     for (let day = 1; day <= 7; day++) {
       const entries = cellMap.get(`${week}-${day}`) || []
       maxEntries = Math.max(maxEntries, entries.length)
+      minEntries = Math.min(minEntries, entries.length)
 
       const cellRef = row.getCell(day + 1)
       if (entries.length > 0) {
@@ -126,7 +128,11 @@ export function exportScheduleToXLSX(
       cellRef.border = THIN_BORDER
     }
 
-    row.height = Math.max(LINE_HEIGHT * maxEntries + 4, LINE_HEIGHT + 4)
+    // When every day cell carries the same non-zero entry count, the row fits
+    // tight with no breathing space — pad with one extra line.
+    const tightRow = maxEntries > 0 && minEntries === maxEntries
+    const heightLines = tightRow ? maxEntries + 1 : maxEntries
+    row.height = Math.max(LINE_HEIGHT * heightLines + 4, LINE_HEIGHT + 4)
 
     // Week column
     const weekCell = row.getCell(1)

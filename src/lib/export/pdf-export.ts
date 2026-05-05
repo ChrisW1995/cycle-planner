@@ -138,6 +138,22 @@ export async function exportScheduleToPDF(
       entryLayoutsMap.set(`Week ${week}-${day}`, layouts)
       row.push(displayLines.join('\n'))
     }
+
+    // When every day cell in the row has the same non-zero line count, the
+    // row fits content with zero slack. Append a blank line to one cell so
+    // autoTable allocates one extra drug-row of height — gives the cells
+    // breathing room without changing visible output (didDrawCell repaints).
+    const dayLineCounts: number[] = []
+    for (let day = 1; day <= 7; day++) {
+      const layouts = entryLayoutsMap.get(`Week ${week}-${day}`) || []
+      dayLineCounts.push(layouts.reduce((sum, l) => sum + (l.wrapped ? 2 : 1), 0))
+    }
+    const minLines = Math.min(...dayLineCounts)
+    const maxLines = Math.max(...dayLineCounts)
+    if (minLines === maxLines && maxLines > 0) {
+      row[1] = row[1] + '\n '
+    }
+
     body.push(row)
   }
 
